@@ -1,0 +1,155 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --font-fraunces: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --font-manrope: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  color: #152013;
+  background:
+    radial-gradient(circle at top left, rgba(197, 140, 85, 0.20), transparent 38%),
+    radial-gradient(circle at top right, rgba(122, 131, 64, 0.18), transparent 32%),
+    linear-gradient(180deg, #fcf8f2 0%, #f6f7ef 55%, #f8f3ea 100%);
+}
+
+::selection {
+  color: #fcf8f2;
+  background: rgba(73, 79, 42, 0.9);
+}
+
+@layer base {
+  * {
+    @apply border-sand-200;
+  }
+
+  body {
+    @apply antialiased;
+  }
+
+  input,
+  textarea,
+  select {
+    @apply text-base;
+  }
+}
+
+@layer components {
+  .font-body {
+    font-family: var(--font-manrope);
+  }
+
+  .font-display {
+    font-family: var(--font-fraunces);
+  }
+
+  .panel-surface {
+    @apply rounded-[28px] border border-white/70 bg-white/85 shadow-panel backdrop-blur-sm;
+  }
+
+  .input-shell {
+    @apply block w-full rounded-2xl border border-sand-200 bg-white px-4 py-3 text-ink outline-none transition duration-150 placeholder:text-sand-500 focus:border-brand-500 focus:ring-4 focus:ring-brand-100;
+  }
+
+  .field-label {
+    @apply mb-2 block text-sm font-semibold text-ink;
+  }
+
+  .field-hint {
+    @apply mt-1 text-sm text-sand-700;
+  }
+
+  .field-error {
+    @apply mt-2 text-sm font-medium text-red-600;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-brand-700;
+  }
+
+  .print-only {
+    display: none;
+  }
+}
+
+@media print {
+  @page {
+    size: auto;
+    margin: 12mm;
+  }
+
+  html,
+  body {
+    background: white !important;
+  }
+
+  .print-hidden {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .panel-surface {
+    border: 1px solid #d6d9c7;
+    box-shadow: none;
+    background: white;
+  }
+
+  main {
+    overflow: visible !important;
+  }
+
+  .print-invoice-layout {
+    display: block !important;
+  }
+
+  .invoice-sidebar {
+    position: static !important;
+    top: auto !important;
+    align-self: auto !important;
+  }
+
+  #invoice-panel {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    border-radius: 20px !important;
+    box-shadow: none !important;
+    background: white !important;
+  }
+
+  #invoice-panel > div {
+    gap: 14px;
+  }
+
+  #invoice-panel .invoice-screen-heading {
+    display: none !important;
+  }
+
+  #invoice-panel .invoice-meta-card,
+  #invoice-panel .invoice-person-card,
+  #invoice-panel .invoice-total-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  #invoice-panel .invoice-meta-card,
+  #invoice-panel .invoice-total-card,
+  #invoice-panel .invoice-person-card {
+    border-radius: 16px !important;
+  }
+
+  #invoice-panel .invoice-person-card {
+    margin-bottom: 10px;
+  }
+}
