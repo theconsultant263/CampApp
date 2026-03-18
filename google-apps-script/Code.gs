@@ -25,6 +25,7 @@ const SHEET_HEADERS = [
   "Other Church",
   "Resolved Church",
   "Primary Payer Full Name",
+  "Primary Payer Phone Number",
   "Email Address",
   "Number of People",
   "Adult Count",
@@ -133,6 +134,10 @@ function validatePayload_(payload) {
 
   if (!payload.payerName || typeof payload.payerName !== "string") {
     throw new Error("Primary payer full name is required.");
+  }
+
+  if (!payload.phone || typeof payload.phone !== "string") {
+    throw new Error("Primary payer phone number is required.");
   }
 
   if (!payload.email || typeof payload.email !== "string" || payload.email.indexOf("@") === -1) {
@@ -259,6 +264,7 @@ function appendRegistrationRow_(sheet, payload) {
     payload.otherChurch || "",
     payload.resolvedChurch,
     payload.payerName,
+    payload.phone,
     payload.email,
     payload.peopleCount,
     payload.adultCount,
@@ -436,6 +442,9 @@ function buildInvoiceHtml_(payload) {
     "<p style='margin:0 0 8px;color:#3e4731;'><strong>Primary payer:</strong> " +
     sanitizeHtml_(payload.payerName) +
     "</p>" +
+    "<p style='margin:0 0 8px;color:#3e4731;'><strong>Phone:</strong> " +
+    sanitizeHtml_(payload.phone) +
+    "</p>" +
     "<p style='margin:0 0 8px;color:#3e4731;'><strong>Email:</strong> " +
     sanitizeHtml_(payload.email) +
     "</p>" +
@@ -469,6 +478,7 @@ function buildEmailText_(payload, driveFileUrl, includeDriveUrl) {
     "Reference: " + payload.reference,
     "Date: " + formatDateTime_(payload.submittedAt),
     "Primary payer: " + payload.payerName,
+    "Phone: " + payload.phone,
     "Email: " + payload.email,
     "Church: " + payload.resolvedChurch,
     "Accommodation: " + payload.accommodationLabel,

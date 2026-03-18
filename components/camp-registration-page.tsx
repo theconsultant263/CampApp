@@ -94,7 +94,19 @@ export function CampRegistrationPage() {
         <h1 className="font-display mt-4 text-4xl font-semibold leading-tight text-ink sm:text-5xl lg:text-6xl">
           Camp Hope 2026 Camp Meeting Registration
         </h1>
-        <p className="mt-4 text-lg font-medium text-sand-800 sm:text-xl">Faith to Follow</p>
+        <div className="mt-5 flex flex-col items-center gap-4">
+          <p className="rounded-full border border-brand-200 bg-brand-50 px-6 py-2 text-base font-semibold tracking-[0.12em] text-brand-800 shadow-highlight sm:text-lg">
+            Faith to Follow
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3 text-sm font-medium text-sand-800">
+            <span className="rounded-full border border-sand-200 bg-sand-50 px-4 py-2">
+              7-11 August 2026
+            </span>
+            <span className="rounded-full border border-sand-200 bg-sand-50 px-4 py-2">
+              Kudu Creek Farm
+            </span>
+          </div>
+        </div>
       </section>
 
       {submittedPayload ? (
@@ -134,6 +146,7 @@ export function CampRegistrationPage() {
             title="Invoice confirmation"
             subtitle="This is the same summary that is sent to the registrant email address and the admin inbox."
             payerName={submittedPayload.payerName}
+            phone={submittedPayload.phone}
             email={submittedPayload.email}
             church={submittedPayload.resolvedChurch}
             summary={submittedPayload}
@@ -219,6 +232,24 @@ export function CampRegistrationPage() {
                         {form.formState.errors.email.message}
                       </p>
                       ) : null}
+                  </div>
+
+                  <div>
+                    <label className="field-label" htmlFor="phone">
+                      Phone number
+                    </label>
+                    <input
+                      id="phone"
+                      type="tel"
+                      className="input-shell"
+                      placeholder="Enter the payer's phone number"
+                      {...form.register("phone")}
+                    />
+                    {form.formState.errors.phone?.message ? (
+                      <p className="field-error" role="alert">
+                        {form.formState.errors.phone.message}
+                      </p>
+                    ) : null}
                   </div>
 
                   <div className="sm:col-span-2">
@@ -312,11 +343,7 @@ export function CampRegistrationPage() {
                   </div>
                 ) : null}
 
-                <div className="print-hidden flex flex-col gap-3 border-t border-sand-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-sm text-sand-800">
-                    Submission emails and Google Sheet storage happen after successful form
-                    validation.
-                  </p>
+                <div className="print-hidden flex justify-end border-t border-sand-200 pt-6">
                   <button
                     type="submit"
                     disabled={form.formState.isSubmitting}
@@ -334,6 +361,7 @@ export function CampRegistrationPage() {
               title="Invoice summary"
               subtitle="Review the live breakdown before submitting. Totals update automatically as you make selections."
               payerName={watchedValues.payerName}
+              phone={watchedValues.phone}
               email={watchedValues.email}
               church={resolvedChurch}
               summary={invoiceSummary}

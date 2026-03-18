@@ -31,6 +31,7 @@ export const registrationSchema = z
       .refine((value) => value !== "", "Please choose a church."),
     otherChurch: z.string().default(""),
     payerName: z.string().trim().min(1, "Primary payer full name is required."),
+    phone: z.string().trim().min(7, "Enter a valid phone number."),
     email: z.string().trim().email("Enter a valid email address."),
     accommodationType: z
       .union([z.enum(TENT_TYPES), z.literal("")])
@@ -55,6 +56,7 @@ export function createDefaultRegistrationValues(): RegistrationFormValues {
     church: "",
     otherChurch: "",
     payerName: "",
+    phone: "",
     email: "",
     accommodationType: "",
     honeypot: "",

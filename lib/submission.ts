@@ -60,6 +60,7 @@ export function buildSubmissionPayload(
     otherChurch: values.otherChurch.trim(),
     resolvedChurch: resolveChurchName(values.church, values.otherChurch),
     payerName: values.payerName.trim(),
+    phone: values.phone.trim(),
     email: values.email.trim(),
     accommodationType: values.accommodationType,
     accommodationLabel: invoiceSummary.accommodationLabel,

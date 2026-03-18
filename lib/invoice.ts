@@ -5,6 +5,7 @@ interface InvoiceTextOptions {
   reference?: string;
   submittedAt?: string;
   payerName: string;
+  phone: string;
   email: string;
   church: string;
   summary: InvoiceSummary | SubmissionPayload;
@@ -17,7 +18,7 @@ function isSubmissionPayload(
 }
 
 export function buildInvoiceClipboardText(options: InvoiceTextOptions) {
-  const { payerName, email, church, summary, reference, submittedAt } = options;
+  const { payerName, phone, email, church, summary, reference, submittedAt } = options;
   const people = isSubmissionPayload(summary) ? summary.people : summary.people;
   const grandTotal = isSubmissionPayload(summary) ? summary.total : summary.grandTotal;
   const accommodationLabel = isSubmissionPayload(summary)
@@ -54,6 +55,7 @@ export function buildInvoiceClipboardText(options: InvoiceTextOptions) {
     resolvedReference ? `Reference: ${resolvedReference}` : null,
     resolvedSubmittedAt ? `Date: ${formatDateTime(resolvedSubmittedAt)}` : null,
     `Payer: ${payerName}`,
+    `Phone: ${phone}`,
     `Email: ${email}`,
     `Church: ${church}`,
     `Accommodation: ${accommodationLabel}`,

@@ -123,6 +123,10 @@ export function PersonCard({
               </label>
             ))}
           </div>
+          <p className="mt-4 text-sm text-sand-700">
+            Registrants may also choose not to purchase any camp meals and instead bring their
+            own food and cooking supplies.
+          </p>
         </div>
 
       </div>

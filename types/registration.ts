@@ -44,6 +44,7 @@ export interface RegistrationFormValues {
   church: ChurchOption | "";
   otherChurch: string;
   payerName: string;
+  phone: string;
   email: string;
   accommodationType: TentTypeField;
   people: PersonFormValue[];
@@ -90,6 +91,7 @@ export interface SubmissionPayload {
   otherChurch: string;
   resolvedChurch: string;
   payerName: string;
+  phone: string;
   email: string;
   accommodationType: TentType;
   accommodationLabel: string;

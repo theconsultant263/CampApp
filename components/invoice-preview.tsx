@@ -11,6 +11,7 @@ interface InvoicePreviewProps {
   title: string;
   subtitle: string;
   payerName: string;
+  phone: string;
   email: string;
   church: string;
   summary: InvoiceSummary | SubmissionPayload;
@@ -27,6 +28,7 @@ export function InvoicePreview({
   title,
   subtitle,
   payerName,
+  phone,
   email,
   church,
   summary,
@@ -67,6 +69,7 @@ export function InvoicePreview({
     await navigator.clipboard.writeText(
       buildInvoiceClipboardText({
         payerName,
+        phone,
         email,
         church,
         summary,
@@ -125,6 +128,7 @@ export function InvoicePreview({
             <p className="mt-2 text-lg font-semibold text-ink">
               {payerName.trim() || "Waiting for payer name"}
             </p>
+            <p className="mt-1 text-sm text-sand-800">{phone.trim() || "Waiting for phone number"}</p>
             <p className="mt-1 text-sm text-sand-800">{email.trim() || "Waiting for email address"}</p>
           </div>
           <div>
