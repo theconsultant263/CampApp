@@ -1,5 +1,6 @@
 export const CHURCH_OPTIONS = [
   "33 Victoria Church",
+  "Arcadia SDA Church",
   "Hillside Avenue SDA Church",
   "Blessed Hope SDA Church",
   "Mutare Sanctuary SDA Church",
