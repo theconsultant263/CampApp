@@ -64,6 +64,10 @@ export function buildSubmissionPayload(
     email: values.email.trim(),
     accommodationType: values.accommodationType,
     accommodationLabel: invoiceSummary.accommodationLabel,
+    requestExhibition: values.requestExhibition,
+    exhibitionDescription: values.requestExhibition
+      ? values.exhibitionDescription.trim()
+      : "",
     people: invoicePeople,
     peopleCount: invoicePeople.length,
     adultCount: ageCounts.adultCount,

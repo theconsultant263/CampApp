@@ -286,6 +286,81 @@ export function CampRegistrationPage() {
                       </p>
                     ) : null}
                   </div>
+
+                  <div className="sm:col-span-2">
+                    <div className="rounded-[24px] border border-brand-200 bg-brand-50/70 p-5 sm:p-6">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">
+                        Camp Hope Community Place
+                      </p>
+                      <h3 className="font-display mt-3 text-2xl font-semibold text-ink">
+                        Showcase your mission initiative, story, product, or service
+                      </h3>
+                      <p className="mt-3 text-sm leading-6 text-sand-800">
+                        We invite you to showcase your church and/or individual mission
+                        initiatives and stories over the last year, or exhibit your individual
+                        business products or services, on Sunday, 9 August 2026 at Camp Hope Camp
+                        Meeting 2026.
+                      </p>
+                      <div className="mt-4 rounded-[20px] border border-white/80 bg-white/80 px-4 py-4">
+                        <p className="text-sm font-semibold text-ink">Why participate?</p>
+                        <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-sand-800">
+                          <li>Fast track meaningful connections and collaborations.</li>
+                          <li>
+                            Together in Mission: learn from others about their I WILL GO
+                            experiences.
+                          </li>
+                          <li>
+                            Changing Lives: the SDA church plays a crucial role in community and
+                            national building.
+                          </li>
+                        </ul>
+                        <p className="mt-4 text-sm text-sand-800">
+                          Make your stand innovative, interesting, and interactive. Product and
+                          service exhibitions remain subject to approval by camp administration for
+                          exhibition appropriateness.
+                        </p>
+                      </div>
+
+                      <label className="mt-5 flex items-start gap-3 rounded-[20px] border border-brand-200 bg-white px-4 py-4">
+                        <input
+                          type="checkbox"
+                          className="mt-1 h-4 w-4 rounded border-sand-300 text-brand-700 focus:ring-brand-400"
+                          {...form.register("requestExhibition")}
+                        />
+                        <span>
+                          <span className="block text-sm font-semibold text-ink">
+                            Request an exhibition stand
+                          </span>
+                          <span className="mt-1 block text-sm text-sand-700">
+                            Leave this unticked if you are not requesting exhibition space.
+                          </span>
+                        </span>
+                      </label>
+
+                      {watchedValues.requestExhibition ? (
+                        <div className="mt-5">
+                          <label className="field-label" htmlFor="exhibitionDescription">
+                            Stand description
+                          </label>
+                          <textarea
+                            id="exhibitionDescription"
+                            rows={5}
+                            className="input-shell min-h-[140px]"
+                            placeholder="Describe the mission initiative, story, product, or service you plan to exhibit."
+                            {...form.register("exhibitionDescription")}
+                          />
+                          <p className="field-hint">
+                            Include enough detail for camp administration to review the request.
+                          </p>
+                          {form.formState.errors.exhibitionDescription?.message ? (
+                            <p className="field-error" role="alert">
+                              {form.formState.errors.exhibitionDescription.message}
+                            </p>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="hidden" aria-hidden="true">

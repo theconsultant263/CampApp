@@ -48,6 +48,8 @@ export interface RegistrationFormValues {
   phone: string;
   email: string;
   accommodationType: TentTypeField;
+  requestExhibition: boolean;
+  exhibitionDescription: string;
   people: PersonFormValue[];
   honeypot: string;
 }
@@ -96,6 +98,8 @@ export interface SubmissionPayload {
   email: string;
   accommodationType: TentType;
   accommodationLabel: string;
+  requestExhibition: boolean;
+  exhibitionDescription: string;
   people: InvoicePerson[];
   peopleCount: number;
   adultCount: number;

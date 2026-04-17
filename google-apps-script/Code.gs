@@ -16,6 +16,7 @@ const CONFIG = {
   SPREADSHEET_ID: "1MewCbSTfHX_FKRO2-auFUyYb7cxRKrEJ-1YK8Bs58is",
   SHEET_NAME: "Registrations",
   DRIVE_FOLDER_ID: "",
+  TIMEZONE: "Africa/Harare",
 };
 
 const SHEET_HEADERS = [
@@ -27,6 +28,8 @@ const SHEET_HEADERS = [
   "Primary Payer Full Name",
   "Primary Payer Phone Number",
   "Email Address",
+  "Exhibition Requested",
+  "Exhibition Description",
   "Number of People",
   "Adult Count",
   "Teen Count",
@@ -128,6 +131,16 @@ function validatePayload_(payload) {
     throw new Error("Payload is required.");
   }
 
+  if (typeof payload.requestExhibition !== "boolean") {
+    payload.requestExhibition = false;
+  }
+
+  if (typeof payload.exhibitionDescription !== "string") {
+    payload.exhibitionDescription = "";
+  }
+
+  payload.exhibitionDescription = payload.exhibitionDescription.trim();
+
   if (!payload.reference || typeof payload.reference !== "string") {
     throw new Error("Reference number is required.");
   }
@@ -162,6 +175,10 @@ function validatePayload_(payload) {
 
   if (!payload.accommodationLabel || typeof payload.accommodationLabel !== "string") {
     throw new Error("Accommodation label is required.");
+  }
+
+  if (payload.requestExhibition && !payload.exhibitionDescription) {
+    throw new Error("An exhibition stand description is required when requesting exhibition.");
   }
 
   payload.people.forEach(function (person) {
@@ -258,7 +275,7 @@ function ensureHeaders_(sheet) {
 
 function appendRegistrationRow_(sheet, payload) {
   sheet.appendRow([
-    payload.submittedAt,
+    formatSheetDateTime_(payload.submittedAt),
     payload.reference,
     payload.church,
     payload.otherChurch || "",
@@ -266,6 +283,8 @@ function appendRegistrationRow_(sheet, payload) {
     payload.payerName,
     payload.phone,
     payload.email,
+    payload.requestExhibition ? "Yes" : "No",
+    payload.exhibitionDescription || "",
     payload.peopleCount,
     payload.adultCount,
     payload.teenCount,
@@ -371,6 +390,13 @@ function buildEmailShell_(title, innerHtml) {
 }
 
 function buildInvoiceHtml_(payload) {
+  const exhibitionDetails = payload.requestExhibition
+    ? "<p style='margin:8px 0 0;color:#3e4731;'><strong>Exhibition request:</strong> Yes</p>" +
+      "<p style='margin:8px 0 0;color:#3e4731;'><strong>Stand description:</strong> " +
+      sanitizeHtml_(payload.exhibitionDescription) +
+      "</p>"
+    : "<p style='margin:8px 0 0;color:#3e4731;'><strong>Exhibition request:</strong> No</p>";
+
   const peopleBlocks = payload.people
     .map(function (person) {
       const mealRows = person.selectedMeals.length
@@ -461,6 +487,7 @@ function buildInvoiceHtml_(payload) {
     " <strong style='margin-left:12px;'>Children:</strong> " +
     sanitizeHtml_(payload.childCount) +
     "</p>" +
+    exhibitionDetails +
     "</div>" +
     peopleBlocks +
     "<div style='border:1px solid #d4d9b3;border-radius:18px;padding:20px;background:#f6f7ef;'>" +
@@ -483,6 +510,8 @@ function buildEmailText_(payload, driveFileUrl, includeDriveUrl) {
     "Church: " + payload.resolvedChurch,
     "Accommodation: " + payload.accommodationLabel,
     "Adults: " + payload.adultCount + " | Teens: " + payload.teenCount + " | Children: " + payload.childCount,
+    "Exhibition request: " + (payload.requestExhibition ? "Yes" : "No"),
+    payload.requestExhibition ? "Stand description: " + payload.exhibitionDescription : null,
     "",
   ];
 
@@ -525,7 +554,11 @@ function formatCurrency_(value) {
 }
 
 function formatDateTime_(value) {
-  return Utilities.formatDate(new Date(value), Session.getScriptTimeZone(), "MMM d, yyyy h:mm a");
+  return Utilities.formatDate(new Date(value), CONFIG.TIMEZONE, "MMM d, yyyy h:mm a");
+}
+
+function formatSheetDateTime_(value) {
+  return Utilities.formatDate(new Date(value), CONFIG.TIMEZONE, "yyyy-MM-dd HH:mm:ss");
 }
 
 function sanitizeHtml_(value) {

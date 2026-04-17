@@ -36,6 +36,8 @@ export const registrationSchema = z
     accommodationType: z
       .union([z.enum(TENT_TYPES), z.literal("")])
       .refine((value) => value !== "", "Choose an accommodation option for this invoice."),
+    requestExhibition: z.boolean().default(false),
+    exhibitionDescription: z.string().default(""),
     honeypot: z.string().max(0).or(z.literal("")).default(""),
     people: z.array(personSchema).min(1, "Add at least one person."),
   })
@@ -45,6 +47,14 @@ export const registrationSchema = z
         code: z.ZodIssueCode.custom,
         path: ["otherChurch"],
         message: "Enter the church name.",
+      });
+    }
+
+    if (values.requestExhibition && values.exhibitionDescription.trim().length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["exhibitionDescription"],
+        message: "Describe the exhibition stand you would like to present.",
       });
     }
   });
@@ -59,6 +69,8 @@ export function createDefaultRegistrationValues(): RegistrationFormValues {
     phone: "",
     email: "",
     accommodationType: "",
+    requestExhibition: false,
+    exhibitionDescription: "",
     honeypot: "",
     people: [createEmptyPerson()],
   };
