@@ -49,6 +49,34 @@ const SHEET_HEADERS = [
   "Total Amount (USD)",
 ];
 
+const LEGACY_SHEET_HEADERS = [
+  "Timestamp",
+  "Reference Number",
+  "Church Selected",
+  "Other Church",
+  "Resolved Church",
+  "Primary Payer Full Name",
+  "Primary Payer Phone Number",
+  "Email Address",
+  "Number of People",
+  "Adult Count",
+  "Teen Count",
+  "Child Count",
+  "Accommodation Type",
+  "Friday Supper Tally",
+  "Saturday Breakfast Tally",
+  "Saturday Lunch Tally",
+  "Saturday Supper Tally",
+  "Sunday Breakfast Tally",
+  "Sunday Lunch Tally",
+  "Sunday Supper Tally",
+  "Monday Breakfast Tally",
+  "Monday Lunch Tally",
+  "Monday Supper Tally",
+  "Tuesday Breakfast Tally",
+  "Total Amount (USD)",
+];
+
 const MEAL_LABELS = {
   fridaySupper: "Friday supper",
   saturdayBreakfast: "Saturday breakfast",
@@ -262,13 +290,22 @@ function getSheet_() {
 }
 
 function ensureHeaders_(sheet) {
-  const currentHeaders = sheet.getRange(1, 1, 1, SHEET_HEADERS.length).getValues()[0];
+  const currentHeaders = sheet.getRange(1, 1, 1, sheet.getMaxColumns()).getValues()[0];
 
   if (areHeadersEqual_(currentHeaders, SHEET_HEADERS)) {
+    sheet.setFrozenRows(1);
     return;
   }
 
-  sheet.getRange(1, 1, 1, Math.max(sheet.getMaxColumns(), SHEET_HEADERS.length)).clearContent();
+  if (isLegacyHeaderLayout_(currentHeaders)) {
+    sheet.insertColumnsAfter(8, 2);
+    sheet.getRange(1, 1, 1, SHEET_HEADERS.length).setValues([SHEET_HEADERS]);
+    sheet.setFrozenRows(1);
+    return;
+  }
+
+  ensureSheetHasColumns_(sheet, SHEET_HEADERS.length);
+  sheet.getRange(1, 1, 1, sheet.getMaxColumns()).clearContent();
   sheet.getRange(1, 1, 1, SHEET_HEADERS.length).setValues([SHEET_HEADERS]);
   sheet.setFrozenRows(1);
 }
@@ -362,7 +399,7 @@ function buildAdminEmailHtml_(payload, driveFileUrl) {
 
   return buildEmailShell_(
     "New camp registration received",
-    intro + driveBlock + buildInvoiceHtml_(payload)
+    intro + driveBlock + buildExhibitionHtml_(payload) + buildInvoiceHtml_(payload)
   );
 }
 
@@ -370,7 +407,10 @@ function buildRegistrantEmailHtml_(payload) {
   const intro =
     "<p style='margin:0 0 16px;'>Thank you for registering for camp. Your invoice summary is below. Please keep this email for your records.</p>";
 
-  return buildEmailShell_("Your camp registration invoice", intro + buildInvoiceHtml_(payload));
+  return buildEmailShell_(
+    "Your camp registration invoice",
+    intro + buildExhibitionHtml_(payload) + buildInvoiceHtml_(payload)
+  );
 }
 
 function buildEmailShell_(title, innerHtml) {
@@ -499,6 +539,22 @@ function buildInvoiceHtml_(payload) {
   );
 }
 
+function buildExhibitionHtml_(payload) {
+  if (!payload.requestExhibition) {
+    return "";
+  }
+
+  return (
+    "<div style='border:1px solid #d4d9b3;border-radius:18px;padding:18px;background:#f6f7ef;margin:0 0 24px;'>" +
+    "<p style='margin:0 0 6px;font-size:12px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#606834;'>Exhibition request</p>" +
+    "<p style='margin:0 0 8px;color:#152013;'><strong>Status:</strong> Requested</p>" +
+    "<p style='margin:0;color:#3e4731;'><strong>Stand description:</strong> " +
+    sanitizeHtml_(payload.exhibitionDescription) +
+    "</p>" +
+    "</div>"
+  );
+}
+
 function buildEmailText_(payload, driveFileUrl, includeDriveUrl) {
   const lines = [
     "Camp Registration Invoice",
@@ -588,4 +644,26 @@ function areHeadersEqual_(currentHeaders, expectedHeaders) {
   }
 
   return true;
+}
+
+function isLegacyHeaderLayout_(currentHeaders) {
+  if (!currentHeaders || currentHeaders.length < LEGACY_SHEET_HEADERS.length) {
+    return false;
+  }
+
+  for (var i = 0; i < LEGACY_SHEET_HEADERS.length; i += 1) {
+    if (String(currentHeaders[i] || "").trim() !== String(LEGACY_SHEET_HEADERS[i]).trim()) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function ensureSheetHasColumns_(sheet, minColumns) {
+  const missingColumns = minColumns - sheet.getMaxColumns();
+
+  if (missingColumns > 0) {
+    sheet.insertColumnsAfter(sheet.getMaxColumns(), missingColumns);
+  }
 }
