@@ -258,6 +258,13 @@ export function CampRegistrationPage() {
                       Everyone on this invoice must share the same accommodation type. If your
                       group mixes day visitors and campers, submit separate invoices.
                     </p>
+                    <p className="mb-4 text-sm text-sand-700">
+                      If you select <span className="font-semibold text-ink">Camp tent</span>,
+                      please note that all tent spaces will be fully allocated to help us steward
+                      accommodation fairly for everyone attending. Individual registrations
+                      choosing this option should expect to share a two-person tent with another
+                      camper, as we are unable to reserve unoccupied tent spaces.
+                    </p>
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                       {(Object.entries(TENT_PRICING) as Array<
                         [TentType, (typeof TENT_PRICING)[TentType]]
@@ -293,12 +300,17 @@ export function CampRegistrationPage() {
                         Camp Hope Community Place
                       </p>
                       <p className="mt-3 text-sm leading-6 text-sand-800">
-                        Want to exhibit your church or personal mission initiative, story, product,
-                        or service at Camp Hope Community Place on Sunday, 9 August 2026? Tick
-                        below to request a stand.
+                        Camp Hope Community Place on Sunday, 9 August 2026 is open not only to
+                        ministry initiatives, but also to businesses, professional services,
+                        creative work, and personal passions that can encourage others. If you
+                        would like to share what you are doing in a way that inspires attendees
+                        and creates meaningful connections, you are welcome to request a stand.
                       </p>
                       <p className="mt-2 text-sm text-sand-700">
-                        Product and service exhibitions are subject to camp administration approval.
+                        This will follow a similar spirit to ASI conventions, where Adventist
+                        Laymen&apos;s Services &amp; Industries brings together ministry, enterprise,
+                        and service. All exhibitions remain subject to camp administration
+                        approval.
                       </p>
 
                       <label className="mt-4 flex items-start gap-3 rounded-[20px] border border-brand-200 bg-white px-4 py-4">
@@ -326,7 +338,7 @@ export function CampRegistrationPage() {
                             id="exhibitionDescription"
                             rows={5}
                             className="input-shell min-h-[140px]"
-                            placeholder="Describe the mission initiative, story, product, or service you plan to exhibit."
+                            placeholder="Describe the ministry, business, creative work, passion project, product, or service you plan to exhibit."
                             {...form.register("exhibitionDescription")}
                           />
                           <p className="field-hint">
