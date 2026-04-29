@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import {
-  AGE_GROUPS,
+  ACCEPTED_AGE_GROUPS,
   CHURCH_OPTIONS,
   MEAL_KEYS,
   TENT_TYPES,
@@ -19,7 +19,7 @@ const mealsSchema = z.object(
 const personSchema = z.object({
   name: z.string().trim().min(1, "Full name is required."),
   ageGroup: z
-    .union([z.enum(AGE_GROUPS), z.literal("")])
+    .union([z.enum(ACCEPTED_AGE_GROUPS), z.literal("")])
     .refine((value) => value !== "", "Choose an age group."),
   meals: mealsSchema,
 });

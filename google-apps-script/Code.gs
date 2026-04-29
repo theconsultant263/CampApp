@@ -19,7 +19,7 @@ const CONFIG = {
   TIMEZONE: "Africa/Harare",
 };
 
-const SHEET_HEADERS = [
+const BASE_SHEET_HEADERS = [
   "Timestamp",
   "Reference Number",
   "Church Selected",
@@ -48,6 +48,12 @@ const SHEET_HEADERS = [
   "Tuesday Breakfast Tally",
   "Total Amount (USD)",
 ];
+
+const SHEET_HEADERS = BASE_SHEET_HEADERS.concat([
+  "Age 3-9 Count",
+  "Age 10-15 Count",
+  "Age 16-20 Count",
+]);
 
 const LEGACY_SHEET_HEADERS = [
   "Timestamp",
@@ -98,6 +104,9 @@ const TENT_LABELS = {
 };
 
 const AGE_LABELS = {
+  age_3_9: "Ages 3-9",
+  age_10_15: "Ages 10-15",
+  age_16_20: "Ages 16-20",
   adult: "Adult",
   teen: "Teen",
   child: "Child",
@@ -239,6 +248,8 @@ function validatePayload_(payload) {
     }
   });
 
+  normalizeAgeCounts_(payload);
+
   if (typeof payload.total !== "number") {
     throw new Error("Total amount is required.");
   }
@@ -246,9 +257,12 @@ function validatePayload_(payload) {
   if (
     typeof payload.adultCount !== "number" ||
     typeof payload.teenCount !== "number" ||
-    typeof payload.childCount !== "number"
+    typeof payload.childCount !== "number" ||
+    typeof payload.age3To9Count !== "number" ||
+    typeof payload.age10To15Count !== "number" ||
+    typeof payload.age16To20Count !== "number"
   ) {
-    throw new Error("Adult, teen, and child counts are required.");
+    throw new Error("Age counts are required.");
   }
 
   if (!payload.mealTallies || typeof payload.mealTallies !== "object") {
@@ -260,6 +274,59 @@ function validatePayload_(payload) {
       throw new Error("Each meal tally must be numeric.");
     }
   });
+}
+
+function normalizeAgeCounts_(payload) {
+  const ageCounts = calculateAgeCounts_(payload.people || []);
+
+  payload.adultCount = ageCounts.adultCount;
+  payload.teenCount = ageCounts.teenCount;
+  payload.childCount = ageCounts.childCount;
+  payload.age3To9Count = ageCounts.age3To9Count;
+  payload.age10To15Count = ageCounts.age10To15Count;
+  payload.age16To20Count = ageCounts.age16To20Count;
+}
+
+function calculateAgeCounts_(people) {
+  const counts = {
+    adultCount: 0,
+    teenCount: 0,
+    childCount: 0,
+    age3To9Count: 0,
+    age10To15Count: 0,
+    age16To20Count: 0,
+  };
+
+  people.forEach(function (person) {
+    if (person.ageGroup === "adult") {
+      counts.adultCount += 1;
+    }
+
+    if (person.ageGroup === "teen") {
+      counts.teenCount += 1;
+    }
+
+    if (person.ageGroup === "child") {
+      counts.childCount += 1;
+    }
+
+    if (person.ageGroup === "age_3_9") {
+      counts.age3To9Count += 1;
+      counts.childCount += 1;
+    }
+
+    if (person.ageGroup === "age_10_15") {
+      counts.age10To15Count += 1;
+      counts.childCount += 1;
+    }
+
+    if (person.ageGroup === "age_16_20") {
+      counts.age16To20Count += 1;
+      counts.teenCount += 1;
+    }
+  });
+
+  return counts;
 }
 
 function getSpreadsheet_() {
@@ -299,6 +366,14 @@ function ensureHeaders_(sheet) {
 
   if (isLegacyHeaderLayout_(currentHeaders)) {
     sheet.insertColumnsAfter(8, 2);
+    ensureSheetHasColumns_(sheet, SHEET_HEADERS.length);
+    sheet.getRange(1, 1, 1, SHEET_HEADERS.length).setValues([SHEET_HEADERS]);
+    sheet.setFrozenRows(1);
+    return;
+  }
+
+  if (areHeadersEqual_(currentHeaders, BASE_SHEET_HEADERS)) {
+    ensureSheetHasColumns_(sheet, SHEET_HEADERS.length);
     sheet.getRange(1, 1, 1, SHEET_HEADERS.length).setValues([SHEET_HEADERS]);
     sheet.setFrozenRows(1);
     return;
@@ -339,6 +414,9 @@ function appendRegistrationRow_(sheet, payload) {
     payload.mealTallies.mondaySupper,
     payload.mealTallies.tuesdayBreakfast,
     payload.total,
+    payload.age3To9Count,
+    payload.age10To15Count,
+    payload.age16To20Count,
   ]);
 }
 
@@ -436,6 +514,7 @@ function buildInvoiceHtml_(payload) {
       sanitizeHtml_(payload.exhibitionDescription) +
       "</p>"
     : "<p style='margin:8px 0 0;color:#3e4731;'><strong>Exhibition request:</strong> No</p>";
+  const ageSummaryHtml = buildAgeSummaryHtml_(payload);
 
   const peopleBlocks = payload.people
     .map(function (person) {
@@ -520,13 +599,7 @@ function buildInvoiceHtml_(payload) {
     "<p style='margin:8px 0 0;color:#3e4731;'><strong>Accommodation:</strong> " +
     sanitizeHtml_(payload.accommodationLabel) +
     "</p>" +
-    "<p style='margin:8px 0 0;color:#3e4731;'><strong>Adults:</strong> " +
-    sanitizeHtml_(payload.adultCount) +
-    " <strong style='margin-left:12px;'>Teens:</strong> " +
-    sanitizeHtml_(payload.teenCount) +
-    " <strong style='margin-left:12px;'>Children:</strong> " +
-    sanitizeHtml_(payload.childCount) +
-    "</p>" +
+    ageSummaryHtml +
     exhibitionDetails +
     "</div>" +
     peopleBlocks +
@@ -555,6 +628,49 @@ function buildExhibitionHtml_(payload) {
   );
 }
 
+function buildAgeSummaryHtml_(payload) {
+  const otherAgeCount = getOtherAgeCount_(payload);
+  const otherAgeHtml = otherAgeCount > 0
+    ? " <strong style='margin-left:12px;'>Other:</strong> " + sanitizeHtml_(otherAgeCount)
+    : "";
+
+  return (
+    "<p style='margin:8px 0 0;color:#3e4731;'><strong>Ages 3-9:</strong> " +
+    sanitizeHtml_(payload.age3To9Count) +
+    " <strong style='margin-left:12px;'>Ages 10-15:</strong> " +
+    sanitizeHtml_(payload.age10To15Count) +
+    " <strong style='margin-left:12px;'>Ages 16-20:</strong> " +
+    sanitizeHtml_(payload.age16To20Count) +
+    otherAgeHtml +
+    "</p>"
+  );
+}
+
+function buildAgeSummaryText_(payload) {
+  const otherAgeCount = getOtherAgeCount_(payload);
+  const otherAgeText = otherAgeCount > 0 ? " | Other: " + otherAgeCount : "";
+
+  return (
+    "Ages 3-9: " +
+    payload.age3To9Count +
+    " | Ages 10-15: " +
+    payload.age10To15Count +
+    " | Ages 16-20: " +
+    payload.age16To20Count +
+    otherAgeText
+  );
+}
+
+function getOtherAgeCount_(payload) {
+  return Math.max(
+    0,
+    Number(payload.peopleCount || 0) -
+      Number(payload.age3To9Count || 0) -
+      Number(payload.age10To15Count || 0) -
+      Number(payload.age16To20Count || 0)
+  );
+}
+
 function buildEmailText_(payload, driveFileUrl, includeDriveUrl) {
   const lines = [
     "Camp Registration Invoice",
@@ -565,7 +681,7 @@ function buildEmailText_(payload, driveFileUrl, includeDriveUrl) {
     "Email: " + payload.email,
     "Church: " + payload.resolvedChurch,
     "Accommodation: " + payload.accommodationLabel,
-    "Adults: " + payload.adultCount + " | Teens: " + payload.teenCount + " | Children: " + payload.childCount,
+    buildAgeSummaryText_(payload),
     "Exhibition request: " + (payload.requestExhibition ? "Yes" : "No"),
     payload.requestExhibition ? "Stand description: " + payload.exhibitionDescription : null,
     "",

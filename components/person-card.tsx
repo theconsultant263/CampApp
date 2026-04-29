@@ -3,12 +3,12 @@
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 
 import {
-  AGE_GROUP_CONFIG,
+  ACTIVE_AGE_GROUP_CONFIG,
   MEAL_ORDER,
   MEAL_PRICING,
 } from "@/lib/pricing";
 import { formatCurrency } from "@/lib/format";
-import type { AgeGroup, RegistrationFormValues } from "@/types/registration";
+import type { ActiveAgeGroup, RegistrationFormValues } from "@/types/registration";
 
 interface PersonCardProps {
   index: number;
@@ -70,11 +70,11 @@ export function PersonCard({
         <div>
           <label className="field-label mb-1">Age group</label>
           <p className="mb-3 text-sm text-sand-700">
-            Choose whether this registrant is an adult, teen, or child.
+            Choose the registrant&apos;s age range.
           </p>
           <div className="grid gap-3 sm:grid-cols-3">
-            {(Object.entries(AGE_GROUP_CONFIG) as Array<
-              [AgeGroup, (typeof AGE_GROUP_CONFIG)[AgeGroup]]
+            {(Object.entries(ACTIVE_AGE_GROUP_CONFIG) as Array<
+              [ActiveAgeGroup, (typeof ACTIVE_AGE_GROUP_CONFIG)[ActiveAgeGroup]]
             >).map(([ageGroup, config]) => (
               <label key={ageGroup} className="block cursor-pointer">
                 <input

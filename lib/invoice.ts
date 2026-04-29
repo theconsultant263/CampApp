@@ -1,4 +1,5 @@
 import { formatCurrency, formatDateTime } from "@/lib/format";
+import { calculateAgeCounts } from "@/lib/pricing";
 import type { InvoiceSummary, SubmissionPayload } from "@/types/registration";
 
 interface InvoiceTextOptions {
@@ -19,33 +20,20 @@ function isSubmissionPayload(
 
 export function buildInvoiceClipboardText(options: InvoiceTextOptions) {
   const { payerName, phone, email, church, summary, reference, submittedAt } = options;
-  const people = isSubmissionPayload(summary) ? summary.people : summary.people;
+  const people = isSubmissionPayload(summary)
+    ? summary.people
+    : summary.people.filter((person) => person.isStarted);
   const grandTotal = isSubmissionPayload(summary) ? summary.total : summary.grandTotal;
   const accommodationLabel = isSubmissionPayload(summary)
     ? summary.accommodationLabel
     : summary.accommodationLabel;
-  const ageCounts = people.reduce(
-    (counts, person) => {
-      if (person.ageGroup === "adult") {
-        counts.adults += 1;
-      }
-
-      if (person.ageGroup === "teen") {
-        counts.teens += 1;
-      }
-
-      if (person.ageGroup === "child") {
-        counts.children += 1;
-      }
-
-      return counts;
-    },
-    {
-      adults: 0,
-      teens: 0,
-      children: 0,
-    },
-  );
+  const ageCounts = calculateAgeCounts(people);
+  const ageRangeTotal =
+    ageCounts.age3To9Count + ageCounts.age10To15Count + ageCounts.age16To20Count;
+  const otherAgeCount = Math.max(0, people.length - ageRangeTotal);
+  const ageRangeSummary = `Ages 3-9: ${ageCounts.age3To9Count} | Ages 10-15: ${ageCounts.age10To15Count} | Ages 16-20: ${ageCounts.age16To20Count}${
+    otherAgeCount > 0 ? ` | Other: ${otherAgeCount}` : ""
+  }`;
   const resolvedReference = reference ?? (isSubmissionPayload(summary) ? summary.reference : undefined);
   const resolvedSubmittedAt =
     submittedAt ?? (isSubmissionPayload(summary) ? summary.submittedAt : undefined);
@@ -59,7 +47,7 @@ export function buildInvoiceClipboardText(options: InvoiceTextOptions) {
     `Email: ${email}`,
     `Church: ${church}`,
     `Accommodation: ${accommodationLabel}`,
-    `Adults: ${ageCounts.adults} | Teens: ${ageCounts.teens} | Children: ${ageCounts.children}`,
+    ageRangeSummary,
     "",
     ...people.flatMap((person) => {
       const personName = "displayName" in person ? person.displayName : person.name;

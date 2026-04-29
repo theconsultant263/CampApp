@@ -1,16 +1,18 @@
-import type {
-  AgeGroup,
-  AgeGroupField,
-  InvoicePerson,
-  InvoiceSummary,
-  MealKey,
-  MealTallies,
-  Meals,
-  PersonFormValue,
-  RegistrationFormValues,
-  SelectedMealLine,
-  TentType,
-  TentTypeField,
+import {
+  ACCEPTED_AGE_GROUPS,
+  type ActiveAgeGroup,
+  type AgeGroup,
+  type AgeGroupField,
+  type InvoicePerson,
+  type InvoiceSummary,
+  type MealKey,
+  type MealTallies,
+  type Meals,
+  type PersonFormValue,
+  type RegistrationFormValues,
+  type SelectedMealLine,
+  type TentType,
+  type TentTypeField,
 } from "@/types/registration";
 
 export const MEAL_PRICING: Record<
@@ -75,19 +77,52 @@ export const AGE_GROUP_CONFIG: Record<
     description: string;
   }
 > = {
+  age_3_9: {
+    label: "Ages 3-9",
+    description: "3-9 years",
+  },
+  age_10_15: {
+    label: "Ages 10-15",
+    description: "10-15 years",
+  },
+  age_16_20: {
+    label: "Ages 16-20",
+    description: "16-20 years",
+  },
   adult: {
     label: "Adult",
-    description: "20 and older",
+    description: "Legacy category",
   },
   teen: {
     label: "Teen",
-    description: "13-19 years",
+    description: "Legacy category",
   },
   child: {
     label: "Child",
-    description: "2-12 years",
+    description: "Legacy category",
   },
 };
+
+export const ACTIVE_AGE_GROUP_CONFIG: Record<
+  ActiveAgeGroup,
+  {
+    label: string;
+    description: string;
+  }
+> = {
+  age_3_9: AGE_GROUP_CONFIG.age_3_9,
+  age_10_15: AGE_GROUP_CONFIG.age_10_15,
+  age_16_20: AGE_GROUP_CONFIG.age_16_20,
+};
+
+export interface AgeCounts {
+  adultCount: number;
+  teenCount: number;
+  childCount: number;
+  age3To9Count: number;
+  age10To15Count: number;
+  age16To20Count: number;
+}
 
 export const TENT_PRICING: Record<
   TentType,
@@ -163,7 +198,7 @@ export function isTentType(value: TentTypeField): value is TentType {
 }
 
 export function isAgeGroup(value: AgeGroupField): value is AgeGroup {
-  return value === "adult" || value === "teen" || value === "child";
+  return (ACCEPTED_AGE_GROUPS as readonly string[]).includes(value);
 }
 
 export function getAgeLabel(ageGroup: AgeGroupField) {
@@ -213,6 +248,53 @@ export function calculateMealTallies(people: PersonFormValue[]): MealTallies {
 
     return tallies;
   }, createEmptyMealTallies());
+}
+
+export function calculateAgeCounts(
+  people: Array<{
+    ageGroup: AgeGroupField;
+  }>,
+): AgeCounts {
+  return people.reduce<AgeCounts>(
+    (counts, person) => {
+      if (person.ageGroup === "adult") {
+        counts.adultCount += 1;
+      }
+
+      if (person.ageGroup === "teen") {
+        counts.teenCount += 1;
+      }
+
+      if (person.ageGroup === "child") {
+        counts.childCount += 1;
+      }
+
+      if (person.ageGroup === "age_3_9") {
+        counts.age3To9Count += 1;
+        counts.childCount += 1;
+      }
+
+      if (person.ageGroup === "age_10_15") {
+        counts.age10To15Count += 1;
+        counts.childCount += 1;
+      }
+
+      if (person.ageGroup === "age_16_20") {
+        counts.age16To20Count += 1;
+        counts.teenCount += 1;
+      }
+
+      return counts;
+    },
+    {
+      adultCount: 0,
+      teenCount: 0,
+      childCount: 0,
+      age3To9Count: 0,
+      age10To15Count: 0,
+      age16To20Count: 0,
+    },
+  );
 }
 
 export function calculateInvoiceSummary(values: RegistrationFormValues): InvoiceSummary {

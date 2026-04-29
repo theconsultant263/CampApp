@@ -23,13 +23,23 @@ export const MEAL_KEYS = [
 ] as const;
 
 export const TENT_TYPES = ["camp_tent", "own_tent", "day_visitor"] as const;
-export const AGE_GROUPS = ["adult", "teen", "child"] as const;
+export const AGE_GROUPS = ["age_3_9", "age_10_15", "age_16_20"] as const;
+export const LEGACY_AGE_GROUPS = ["adult", "teen", "child"] as const;
+export const ACCEPTED_AGE_GROUPS = [
+  "age_3_9",
+  "age_10_15",
+  "age_16_20",
+  "adult",
+  "teen",
+  "child",
+] as const;
 
 export type ChurchOption = (typeof CHURCH_OPTIONS)[number];
 export type MealKey = (typeof MEAL_KEYS)[number];
 export type TentType = (typeof TENT_TYPES)[number];
 export type TentTypeField = TentType | "";
-export type AgeGroup = (typeof AGE_GROUPS)[number];
+export type ActiveAgeGroup = (typeof AGE_GROUPS)[number];
+export type AgeGroup = (typeof ACCEPTED_AGE_GROUPS)[number];
 export type AgeGroupField = AgeGroup | "";
 
 export type Meals = Record<MealKey, boolean>;
@@ -105,6 +115,9 @@ export interface SubmissionPayload {
   adultCount: number;
   teenCount: number;
   childCount: number;
+  age3To9Count: number;
+  age10To15Count: number;
+  age16To20Count: number;
   mealTallies: MealTallies;
   total: number;
 }

@@ -93,7 +93,7 @@ Use the files inside `google-apps-script/`:
 Create this header row in row 1, or let the script create it automatically:
 
 ```text
-Timestamp | Reference Number | Church Selected | Other Church | Resolved Church | Primary Payer Full Name | Primary Payer Phone Number | Email Address | Exhibition Requested | Exhibition Description | Number of People | Adult Count | Teen Count | Child Count | Accommodation Type | Friday Supper Tally | Saturday Breakfast Tally | Saturday Lunch Tally | Saturday Supper Tally | Sunday Breakfast Tally | Sunday Lunch Tally | Sunday Supper Tally | Monday Breakfast Tally | Monday Lunch Tally | Monday Supper Tally | Tuesday Breakfast Tally | Total Amount (USD)
+Timestamp | Reference Number | Church Selected | Other Church | Resolved Church | Primary Payer Full Name | Primary Payer Phone Number | Email Address | Exhibition Requested | Exhibition Description | Number of People | Adult Count | Teen Count | Child Count | Accommodation Type | Friday Supper Tally | Saturday Breakfast Tally | Saturday Lunch Tally | Saturday Supper Tally | Sunday Breakfast Tally | Sunday Lunch Tally | Sunday Supper Tally | Monday Breakfast Tally | Monday Lunch Tally | Monday Supper Tally | Tuesday Breakfast Tally | Total Amount (USD) | Age 3-9 Count | Age 10-15 Count | Age 16-20 Count
 ```
 
 ### Google Apps Script publishing steps

@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { buildInvoiceClipboardText } from "@/lib/invoice";
 import { formatCurrency, formatDateTime } from "@/lib/format";
-import { TENT_PRICING, isTentType } from "@/lib/pricing";
+import { TENT_PRICING, calculateAgeCounts, isTentType } from "@/lib/pricing";
 import type { InvoiceSummary, SubmissionPayload } from "@/types/registration";
 
 interface InvoicePreviewProps {
@@ -42,28 +42,13 @@ export function InvoicePreview({
     ? summary.people
     : summary.people.filter((person) => person.isStarted);
   const grandTotal = isSubmissionPayload(summary) ? summary.total : summary.grandTotal;
-  const ageCounts = people.reduce(
-    (counts, person) => {
-      if (person.ageGroup === "adult") {
-        counts.adults += 1;
-      }
-
-      if (person.ageGroup === "teen") {
-        counts.teens += 1;
-      }
-
-      if (person.ageGroup === "child") {
-        counts.children += 1;
-      }
-
-      return counts;
-    },
-    {
-      adults: 0,
-      teens: 0,
-      children: 0,
-    },
-  );
+  const ageCounts = calculateAgeCounts(people);
+  const ageRangeTotal =
+    ageCounts.age3To9Count + ageCounts.age10To15Count + ageCounts.age16To20Count;
+  const otherAgeCount = Math.max(0, people.length - ageRangeTotal);
+  const ageRangeSummary = `Ages 3-9 ${ageCounts.age3To9Count} • Ages 10-15 ${ageCounts.age10To15Count} • Ages 16-20 ${ageCounts.age16To20Count}${
+    otherAgeCount > 0 ? ` • Other ${otherAgeCount}` : ""
+  }`;
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(
@@ -142,9 +127,7 @@ export function InvoicePreview({
                   Ref {summary.reference} • {formatDateTime(summary.submittedAt)}
                 </p>
                 <p className="mt-2 text-sm text-sand-800">Accommodation: {summary.accommodationLabel}</p>
-                <p className="mt-2 text-sm text-sand-800">
-                  Adults {summary.adultCount} • Teens {summary.teenCount} • Children {summary.childCount}
-                </p>
+                <p className="mt-2 text-sm text-sand-800">{ageRangeSummary}</p>
               </>
             ) : (
               <>
@@ -153,9 +136,7 @@ export function InvoicePreview({
                 </p>
                 <p className="mt-2 text-sm text-sand-800">Accommodation: {accommodationLabel}</p>
                 {people.length > 0 ? (
-                  <p className="mt-2 text-sm text-sand-800">
-                    Adults {ageCounts.adults} • Teens {ageCounts.teens} • Children {ageCounts.children}
-                  </p>
+                  <p className="mt-2 text-sm text-sand-800">{ageRangeSummary}</p>
                 ) : null}
               </>
             )}

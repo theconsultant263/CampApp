@@ -1,4 +1,5 @@
 import {
+  calculateAgeCounts,
   calculateInvoiceSummary,
   isTentType,
   resolveChurchName,
@@ -30,28 +31,7 @@ export function buildSubmissionPayload(
 
   const invoicePeople = toInvoicePeople(values);
   const invoiceSummary = calculateInvoiceSummary(values);
-  const ageCounts = invoicePeople.reduce(
-    (counts, person) => {
-      if (person.ageGroup === "adult") {
-        counts.adultCount += 1;
-      }
-
-      if (person.ageGroup === "teen") {
-        counts.teenCount += 1;
-      }
-
-      if (person.ageGroup === "child") {
-        counts.childCount += 1;
-      }
-
-      return counts;
-    },
-    {
-      adultCount: 0,
-      teenCount: 0,
-      childCount: 0,
-    },
-  );
+  const ageCounts = calculateAgeCounts(invoicePeople);
 
   return {
     reference: options?.reference ?? createSubmissionReference(),
@@ -73,6 +53,9 @@ export function buildSubmissionPayload(
     adultCount: ageCounts.adultCount,
     teenCount: ageCounts.teenCount,
     childCount: ageCounts.childCount,
+    age3To9Count: ageCounts.age3To9Count,
+    age10To15Count: ageCounts.age10To15Count,
+    age16To20Count: ageCounts.age16To20Count,
     mealTallies: invoiceSummary.mealTallies,
     total: invoiceSummary.grandTotal,
   };
