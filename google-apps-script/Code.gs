@@ -641,6 +641,8 @@ function buildAgeSummaryHtml_(payload) {
     sanitizeHtml_(payload.age10To15Count) +
     " <strong style='margin-left:12px;'>Ages 16-20:</strong> " +
     sanitizeHtml_(payload.age16To20Count) +
+    " <strong style='margin-left:12px;'>Adults 20+:</strong> " +
+    sanitizeHtml_(payload.adultCount) +
     otherAgeHtml +
     "</p>"
   );
@@ -657,6 +659,8 @@ function buildAgeSummaryText_(payload) {
     payload.age10To15Count +
     " | Ages 16-20: " +
     payload.age16To20Count +
+    " | Adults 20+: " +
+    payload.adultCount +
     otherAgeText
   );
 }
@@ -667,7 +671,8 @@ function getOtherAgeCount_(payload) {
     Number(payload.peopleCount || 0) -
       Number(payload.age3To9Count || 0) -
       Number(payload.age10To15Count || 0) -
-      Number(payload.age16To20Count || 0)
+      Number(payload.age16To20Count || 0) -
+      Number(payload.adultCount || 0)
   );
 }
 

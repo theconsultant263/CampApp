@@ -23,8 +23,8 @@ export const MEAL_KEYS = [
 ] as const;
 
 export const TENT_TYPES = ["camp_tent", "own_tent", "day_visitor"] as const;
-export const AGE_GROUPS = ["age_3_9", "age_10_15", "age_16_20"] as const;
-export const LEGACY_AGE_GROUPS = ["adult", "teen", "child"] as const;
+export const AGE_GROUPS = ["age_3_9", "age_10_15", "age_16_20", "adult"] as const;
+export const LEGACY_AGE_GROUPS = ["teen", "child"] as const;
 export const ACCEPTED_AGE_GROUPS = [
   "age_3_9",
   "age_10_15",

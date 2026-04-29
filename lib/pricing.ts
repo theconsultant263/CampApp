@@ -90,8 +90,8 @@ export const AGE_GROUP_CONFIG: Record<
     description: "16-20 years",
   },
   adult: {
-    label: "Adult",
-    description: "Legacy category",
+    label: "Adult 20+",
+    description: "20+ years",
   },
   teen: {
     label: "Teen",
@@ -113,6 +113,7 @@ export const ACTIVE_AGE_GROUP_CONFIG: Record<
   age_3_9: AGE_GROUP_CONFIG.age_3_9,
   age_10_15: AGE_GROUP_CONFIG.age_10_15,
   age_16_20: AGE_GROUP_CONFIG.age_16_20,
+  adult: AGE_GROUP_CONFIG.adult,
 };
 
 export interface AgeCounts {

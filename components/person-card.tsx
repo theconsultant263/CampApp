@@ -72,7 +72,7 @@ export function PersonCard({
           <p className="mb-3 text-sm text-sand-700">
             Choose the registrant&apos;s age range.
           </p>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {(Object.entries(ACTIVE_AGE_GROUP_CONFIG) as Array<
               [ActiveAgeGroup, (typeof ACTIVE_AGE_GROUP_CONFIG)[ActiveAgeGroup]]
             >).map(([ageGroup, config]) => (

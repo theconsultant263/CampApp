@@ -28,10 +28,13 @@ export function buildInvoiceClipboardText(options: InvoiceTextOptions) {
     ? summary.accommodationLabel
     : summary.accommodationLabel;
   const ageCounts = calculateAgeCounts(people);
-  const ageRangeTotal =
-    ageCounts.age3To9Count + ageCounts.age10To15Count + ageCounts.age16To20Count;
-  const otherAgeCount = Math.max(0, people.length - ageRangeTotal);
-  const ageRangeSummary = `Ages 3-9: ${ageCounts.age3To9Count} | Ages 10-15: ${ageCounts.age10To15Count} | Ages 16-20: ${ageCounts.age16To20Count}${
+  const activeAgeTotal =
+    ageCounts.age3To9Count +
+    ageCounts.age10To15Count +
+    ageCounts.age16To20Count +
+    ageCounts.adultCount;
+  const otherAgeCount = Math.max(0, people.length - activeAgeTotal);
+  const ageRangeSummary = `Ages 3-9: ${ageCounts.age3To9Count} | Ages 10-15: ${ageCounts.age10To15Count} | Ages 16-20: ${ageCounts.age16To20Count} | Adults 20+: ${ageCounts.adultCount}${
     otherAgeCount > 0 ? ` | Other: ${otherAgeCount}` : ""
   }`;
   const resolvedReference = reference ?? (isSubmissionPayload(summary) ? summary.reference : undefined);
