@@ -121,9 +121,11 @@ function doGet() {
 
 function doPost(e) {
   const lock = LockService.getScriptLock();
+  let lockAcquired = false;
 
   try {
     lock.waitLock(30000);
+    lockAcquired = true;
 
     const payload = parseRequestBody_(e);
     validatePayload_(payload);
@@ -131,15 +133,30 @@ function doPost(e) {
     const sheet = getSheet_();
     ensureHeaders_(sheet);
 
-    const driveFileUrl = saveJsonToDrive_(payload);
+    const warnings = [];
+    let driveFileUrl = "";
+
+    collectOptionalStep_(warnings, "Save JSON to Drive", function () {
+      driveFileUrl = saveJsonToDrive_(payload);
+    });
+
     appendRegistrationRow_(sheet, payload);
-    sendAdminEmail_(payload, driveFileUrl);
-    sendRegistrantEmail_(payload);
+
+    collectOptionalStep_(warnings, "Send admin email", function () {
+      sendAdminEmail_(payload, driveFileUrl);
+    });
+
+    collectOptionalStep_(warnings, "Send registrant email", function () {
+      sendRegistrantEmail_(payload);
+    });
 
     return createJsonResponse_({
       success: true,
-      message: "Registration stored successfully.",
+      message: warnings.length
+        ? "Registration stored successfully with follow-up warnings."
+        : "Registration stored successfully.",
       reference: payload.reference,
+      warnings: warnings,
     });
   } catch (error) {
     return createJsonResponse_({
@@ -147,7 +164,19 @@ function doPost(e) {
       error: error && error.message ? error.message : "Unknown Apps Script error.",
     });
   } finally {
-    lock.releaseLock();
+    if (lockAcquired) {
+      lock.releaseLock();
+    }
+  }
+}
+
+function collectOptionalStep_(warnings, label, callback) {
+  try {
+    callback();
+  } catch (error) {
+    warnings.push(
+      label + " failed: " + (error && error.message ? error.message : "Unknown error.")
+    );
   }
 }
 

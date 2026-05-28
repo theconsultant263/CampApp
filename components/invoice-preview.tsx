@@ -49,9 +49,13 @@ export function InvoicePreview({
     ageCounts.age16To20Count +
     ageCounts.adultCount;
   const otherAgeCount = Math.max(0, people.length - activeAgeTotal);
-  const ageRangeSummary = `Ages 3-9 ${ageCounts.age3To9Count} • Ages 10-15 ${ageCounts.age10To15Count} • Ages 16-20 ${ageCounts.age16To20Count} • Adults 20+ ${ageCounts.adultCount}${
-    otherAgeCount > 0 ? ` • Other ${otherAgeCount}` : ""
-  }`;
+  const ageRangeSummary = [
+    { label: "Ages 3-9", count: ageCounts.age3To9Count },
+    { label: "Ages 10-15", count: ageCounts.age10To15Count },
+    { label: "Ages 16-20", count: ageCounts.age16To20Count },
+    { label: "Adults 20+", count: ageCounts.adultCount },
+    { label: "Other", count: otherAgeCount },
+  ].filter((item) => item.count > 0);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(
@@ -130,7 +134,21 @@ export function InvoicePreview({
                   Ref {summary.reference} • {formatDateTime(summary.submittedAt)}
                 </p>
                 <p className="mt-2 text-sm text-sand-800">Accommodation: {summary.accommodationLabel}</p>
-                <p className="mt-2 text-sm text-sand-800">{ageRangeSummary}</p>
+                <div className="mt-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sand-700">
+                    Age groups
+                  </p>
+                  <ul className="mt-2 flex flex-wrap gap-2">
+                    {ageRangeSummary.map((item) => (
+                      <li
+                        key={item.label}
+                        className="rounded-full border border-sand-200 bg-white px-3 py-1 text-xs font-semibold text-sand-800"
+                      >
+                        {item.label}: {item.count}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </>
             ) : (
               <>
@@ -139,7 +157,21 @@ export function InvoicePreview({
                 </p>
                 <p className="mt-2 text-sm text-sand-800">Accommodation: {accommodationLabel}</p>
                 {people.length > 0 ? (
-                  <p className="mt-2 text-sm text-sand-800">{ageRangeSummary}</p>
+                  <div className="mt-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sand-700">
+                      Age groups
+                    </p>
+                    <ul className="mt-2 flex flex-wrap gap-2">
+                      {ageRangeSummary.map((item) => (
+                        <li
+                          key={item.label}
+                          className="rounded-full border border-sand-200 bg-white px-3 py-1 text-xs font-semibold text-sand-800"
+                        >
+                          {item.label}: {item.count}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 ) : null}
               </>
             )}

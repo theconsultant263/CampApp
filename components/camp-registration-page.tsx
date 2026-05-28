@@ -23,6 +23,107 @@ import type {
 } from "@/types/registration";
 import { CHURCH_OPTIONS } from "@/types/registration";
 
+const FAQ_ITEMS = [
+  {
+    question: "I am unclear on how to register. What should I do first?",
+    answer: [
+      "Start by choosing your church, then enter the primary payer details. Choose one accommodation option for everyone on this invoice, add each person being paid for, select any meals they need, review the live invoice summary, and submit the registration.",
+      "If your group has people using different accommodation types, please submit separate registrations for each accommodation type.",
+    ],
+  },
+  {
+    question: "When is Camp Hope 2026?",
+    answer: [
+      "Camp Hope 2026 runs from 7-11 August 2026 at Kudu Creek Farm.",
+    ],
+  },
+  {
+    question: "Who are the speakers?",
+    answer: [
+      "The speakers are Ps. Donnet Blake from the USA, Ps. John and April Nixon from the USA, and Ps. Sou Blose from South Africa.",
+    ],
+  },
+  {
+    question: "What is planned for ages 13-20?",
+    answer: [
+      "The AFM affiliate and Abundant Life South Africa team will run the camp program for ages 13-20. Their mission is to bring Abundant Life into every home in creative ways, leading young people to Jesus and equipping them to start disciple-making movements.",
+      "The team will travel from Dundee and Johannesburg, South Africa, and creativity in reaching young people to follow Jesus will be central to the camp weekend.",
+    ],
+  },
+  {
+    question: "Will there be a children's program?",
+    answer: [
+      "Yes. The children's program is for ages 3-12, inviting children to experience following Jesus in The Army of The Lord.",
+    ],
+  },
+  {
+    question: "Can I bring my own tent?",
+    answer: [
+      `Yes. Choose "${TENT_PRICING.own_tent.label}" on the form. The ${formatCurrency(
+        TENT_PRICING.own_tent.price,
+      )} per-person camp fee still applies before any meals are selected, so three people bringing their own tent would be ${formatCurrency(
+        TENT_PRICING.own_tent.price * 3,
+      )} before meals.`,
+      "That works out to less than $5 per person per day. The fee helps keep the camp sustainable, including running water, hot water from gas geysers, functional toilets, fires and lanterns each night, electricity for lights, and electricity for the main venues.",
+    ],
+  },
+  {
+    question: "Can I bring my own food?",
+    answer: [
+      "Yes. Cooking areas will be available, and campers are encouraged to bring their own food and cooking supplies if they are not purchasing camp meals.",
+    ],
+  },
+  {
+    question: "Can I exhibit a mission initiative, story, product, or service?",
+    answer: [
+      "Yes. On Sunday, 9 August 2026, you can request space to showcase your church or individual mission initiatives and stories from the last year, or exhibit appropriate individual business products or services.",
+      "Select the exhibition option on the registration form and describe your stand. Exhibitions are subject to camp administration approval for appropriateness.",
+    ],
+  },
+  {
+    question: "What should an exhibition stand be like?",
+    answer: [
+      "Make it innovative, interesting, and interactive. The goal is to fast track meaningful connections and collaborations, share Together in Mission and I WILL GO experiences, and show how God is changing lives through community and national building.",
+    ],
+  },
+  {
+    question: "What if my church is not listed?",
+    answer: [
+      'Choose "Other" in the church list, then enter your church name in the field that appears.',
+    ],
+  },
+] as const;
+
+async function readSubmissionResponse(response: Response): Promise<SubmissionApiResponse> {
+  const text = await response.text();
+
+  if (!text) {
+    return {
+      success: false,
+      error: "The registration server returned an empty response. Please try again.",
+    };
+  }
+
+  try {
+    return JSON.parse(text) as SubmissionApiResponse;
+  } catch {
+    return {
+      success: false,
+      error: "The registration server returned an unexpected response. Please try again.",
+    };
+  }
+}
+
+function getSubmitErrorMessage(error: unknown) {
+  if (error instanceof TypeError && /failed to fetch|load failed|network/i.test(error.message)) {
+    return "We could not reach the registration server. Please check your connection and try again.";
+  }
+
+  return error instanceof Error
+    ? error.message
+    : "Something went wrong while submitting. Please try again.";
+}
+
 export function CampRegistrationPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submittedPayload, setSubmittedPayload] = useState<SubmissionPayload | null>(null);
@@ -64,10 +165,11 @@ export function CampRegistrationPage() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "same-origin",
         body: JSON.stringify(values),
       });
 
-      const result = (await response.json()) as SubmissionApiResponse;
+      const result = await readSubmissionResponse(response);
 
       if (!response.ok || !result.success || !result.data) {
         throw new Error(result.error || result.message || "Unable to submit registration.");
@@ -77,11 +179,7 @@ export function CampRegistrationPage() {
       form.reset(createDefaultRegistrationValues());
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error) {
-      setSubmitError(
-        error instanceof Error
-          ? error.message
-          : "Something went wrong while submitting. Please try again.",
-      );
+      setSubmitError(getSubmitErrorMessage(error));
     }
   });
 
@@ -159,9 +257,68 @@ export function CampRegistrationPage() {
               title="Registration form"
               description="Collect the primary payer details, choose one accommodation option for the whole invoice, and list each person being covered."
             >
-              <form className="space-y-8" onSubmit={onSubmit} noValidate>
+              <form id="registration-form" className="space-y-8" onSubmit={onSubmit} noValidate>
+                <section
+                  id="camp-faqs"
+                  aria-labelledby="camp-faqs-heading"
+                  className="rounded-[24px] border border-brand-200 bg-brand-50/80 p-5 sm:p-6"
+                >
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">
+                        Registration help
+                      </p>
+                      <h3
+                        id="camp-faqs-heading"
+                        className="font-display mt-2 text-2xl font-semibold text-ink"
+                      >
+                        Frequently asked questions
+                      </h3>
+                      <p className="mt-2 max-w-2xl text-sm leading-6 text-sand-800">
+                        If you are unclear on how to register, read these quick answers first.
+                        When you are ready, return to the church selection and complete the form.
+                      </p>
+                    </div>
+                    <a
+                      href="#registration-start"
+                      className="inline-flex shrink-0 items-center justify-center rounded-full bg-ink px-5 py-3 text-sm font-semibold text-sand-50 transition hover:bg-brand-800"
+                    >
+                      Return to registration
+                    </a>
+                  </div>
+
+                  <div className="mt-6 divide-y divide-brand-200 rounded-[20px] border border-brand-200 bg-white">
+                    {FAQ_ITEMS.map((item, index) => (
+                      <details key={item.question} className="group px-4 py-4 sm:px-5">
+                        <summary className="flex cursor-pointer list-none items-start justify-between gap-4 text-left">
+                          <span className="font-semibold text-ink">{item.question}</span>
+                          <span
+                            aria-hidden="true"
+                            className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-brand-200 text-lg leading-none text-brand-700 transition group-open:rotate-45"
+                          >
+                            +
+                          </span>
+                        </summary>
+                        <div className="mt-3 space-y-2 pr-8 text-sm leading-6 text-sand-800">
+                          {item.answer.map((paragraph) => (
+                            <p key={paragraph}>{paragraph}</p>
+                          ))}
+                        </div>
+                        {index === FAQ_ITEMS.length - 1 ? (
+                          <a
+                            href="#registration-start"
+                            className="mt-4 inline-flex items-center justify-center rounded-full border border-brand-300 bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700 transition hover:border-brand-400 hover:bg-brand-100"
+                          >
+                            Return to registration
+                          </a>
+                        ) : null}
+                      </details>
+                    ))}
+                  </div>
+                </section>
+
                 <div className="grid gap-6 sm:grid-cols-2">
-                  <div className="sm:col-span-2">
+                  <div id="registration-start" className="scroll-mt-8 sm:col-span-2">
                     <label className="field-label" htmlFor="church">
                       Church
                     </label>

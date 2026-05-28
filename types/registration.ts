@@ -127,4 +127,5 @@ export interface SubmissionApiResponse {
   message?: string;
   data?: SubmissionPayload;
   error?: string;
+  warnings?: string[];
 }
