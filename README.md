@@ -11,7 +11,7 @@ It includes:
 - Central pricing utilities for meal and tent totals
 - Client + server validation
 - A Next.js route handler that forwards validated submissions to Google Apps Script
-- Google Apps Script code that writes to Google Sheets, optionally stores JSON in Google Drive, emails the admin, and emails the registrant
+- Google Apps Script code that writes to Google Sheets, optionally stores JSON in Google Drive, and queues admin/registrant invoice emails
 - A printable invoice view and copy-to-clipboard invoice summary
 - A lightweight honeypot anti-spam field
 
@@ -20,7 +20,8 @@ The recommended architecture is:
 1. Browser submits the form to the local Next.js app
 2. Next.js validates and enriches the submission with totals and a reference number
 3. Next.js sends the final payload to the published Google Apps Script web app URL
-4. Google Apps Script writes the row to Google Sheets, optionally stores JSON in Drive, and sends both emails
+4. Google Apps Script writes the row to Google Sheets, optionally stores JSON in Drive, queues both emails, and returns quickly
+5. A short-lived Apps Script trigger processes the email queue in the background
 
 This proxy approach is Vercel-friendly and avoids common browser CORS friction with direct Apps Script requests.
 
@@ -79,7 +80,7 @@ Key files:
 - `lib/pricing.ts`: central pricing map and total calculation helpers
 - `lib/schema.ts`: zod validation rules and default form values
 - `lib/submission.ts`: builds the final payload with totals and reference number
-- `google-apps-script/Code.gs`: full Google Apps Script backend
+- `google-apps-script/Code.gs`: full Google Apps Script backend with a retryable email queue
 
 ## 4. Google Apps Script code
 
@@ -125,6 +126,8 @@ Timestamp | Reference Number | Church Selected | Other Church | Resolved Church 
 5. Submit a test registration and confirm:
    - A row is appended in Google Sheets
    - JSON is stored in Drive if `DRIVE_FOLDER_ID` is configured
+   - The `Email Queue` sheet is created automatically
+   - Email queue rows move from `Queued` to `Sent`
    - The admin email arrives
    - The registrant email arrives
 
@@ -209,9 +212,10 @@ npm run dev
 1. Submit a test registration locally.
 2. Confirm the Next.js app returns success.
 3. Open the target Google Sheet and verify the new row is present.
-4. Check the admin inbox for the structured registration email.
-5. Check the registrant inbox for the invoice email.
-6. If using Drive JSON storage, confirm the file exists in the configured Drive folder.
+4. Confirm the `Email Queue` rows are processed to `Sent`.
+5. Check the admin inbox for the structured registration email.
+6. Check the registrant inbox for the invoice email.
+7. If using Drive JSON storage, confirm the file exists in the configured Drive folder.
 
 ### Production verification
 

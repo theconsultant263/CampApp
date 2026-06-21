@@ -3,7 +3,7 @@
  *
  * This web app receives JSON from the Next.js frontend proxy route,
  * appends each registration to Google Sheets, optionally stores the raw
- * JSON payload in Google Drive, emails the admin, and emails the registrant.
+ * JSON payload in Google Drive, and queues admin/registrant invoice emails.
  *
  * Recommended deployment:
  * - Execute as: Me
@@ -15,8 +15,17 @@ const CONFIG = {
   ADMIN_EMAIL: "33campmeeting@gmail.com",
   SPREADSHEET_ID: "1MewCbSTfHX_FKRO2-auFUyYb7cxRKrEJ-1YK8Bs58is",
   SHEET_NAME: "Registrations",
+  EMAIL_QUEUE_SHEET_NAME: "Email Queue",
   DRIVE_FOLDER_ID: "",
   TIMEZONE: "Africa/Harare",
+};
+
+const EMAIL_QUEUE_CONFIG = {
+  BATCH_SIZE: 6,
+  MAX_ATTEMPTS: 3,
+  STALE_PROCESSING_MINUTES: 10,
+  TRIGGER_HANDLER: "processEmailQueue_",
+  TRIGGER_DELAY_MS: 60 * 1000,
 };
 
 const BASE_SHEET_HEADERS = [
@@ -83,6 +92,32 @@ const LEGACY_SHEET_HEADERS = [
   "Total Amount (USD)",
 ];
 
+const EMAIL_QUEUE_HEADERS = [
+  "Queued At",
+  "Reference Number",
+  "Email Type",
+  "Recipient",
+  "Payload JSON",
+  "Drive File URL",
+  "Attempts",
+  "Status",
+  "Last Error",
+  "Updated At",
+];
+
+const EMAIL_QUEUE_COLUMNS = {
+  QUEUED_AT: 1,
+  REFERENCE: 2,
+  EMAIL_TYPE: 3,
+  RECIPIENT: 4,
+  PAYLOAD_JSON: 5,
+  DRIVE_FILE_URL: 6,
+  ATTEMPTS: 7,
+  STATUS: 8,
+  LAST_ERROR: 9,
+  UPDATED_AT: 10,
+};
+
 const MEAL_LABELS = {
   fridaySupper: "Friday supper",
   saturdayBreakfast: "Saturday breakfast",
@@ -120,41 +155,42 @@ function doGet() {
 }
 
 function doPost(e) {
-  const lock = LockService.getScriptLock();
-  let lockAcquired = false;
-
   try {
-    lock.waitLock(30000);
-    lockAcquired = true;
-
     const payload = parseRequestBody_(e);
     validatePayload_(payload);
 
-    const sheet = getSheet_();
-    ensureHeaders_(sheet);
-
     const warnings = [];
     let driveFileUrl = "";
+    let shouldScheduleEmailQueue = false;
 
     collectOptionalStep_(warnings, "Save JSON to Drive", function () {
       driveFileUrl = saveJsonToDrive_(payload);
     });
 
-    appendRegistrationRow_(sheet, payload);
+    withScriptLock_(30000, function () {
+      const sheet = getSheet_();
+      ensureHeaders_(sheet);
+      appendRegistrationRow_(sheet, payload);
 
-    collectOptionalStep_(warnings, "Send admin email", function () {
-      sendAdminEmail_(payload, driveFileUrl);
+      collectOptionalStep_(warnings, "Queue invoice emails", function () {
+        const queueSheet = getEmailQueueSheet_();
+        ensureEmailQueueHeaders_(queueSheet);
+        enqueueEmailDelivery_(queueSheet, payload, driveFileUrl);
+        shouldScheduleEmailQueue = true;
+      });
     });
 
-    collectOptionalStep_(warnings, "Send registrant email", function () {
-      sendRegistrantEmail_(payload);
-    });
+    if (shouldScheduleEmailQueue) {
+      collectOptionalStep_(warnings, "Schedule invoice email delivery", function () {
+        scheduleEmailQueueProcessing_();
+      });
+    }
 
     return createJsonResponse_({
       success: true,
       message: warnings.length
         ? "Registration stored successfully with follow-up warnings."
-        : "Registration stored successfully.",
+        : "Registration stored successfully. Invoice emails have been queued.",
       reference: payload.reference,
       warnings: warnings,
     });
@@ -163,10 +199,6 @@ function doPost(e) {
       success: false,
       error: error && error.message ? error.message : "Unknown Apps Script error.",
     });
-  } finally {
-    if (lockAcquired) {
-      lock.releaseLock();
-    }
   }
 }
 
@@ -177,6 +209,21 @@ function collectOptionalStep_(warnings, label, callback) {
     warnings.push(
       label + " failed: " + (error && error.message ? error.message : "Unknown error.")
     );
+  }
+}
+
+function withScriptLock_(timeoutMs, callback) {
+  const lock = LockService.getScriptLock();
+  let lockAcquired = false;
+
+  try {
+    lock.waitLock(timeoutMs);
+    lockAcquired = true;
+    return callback();
+  } finally {
+    if (lockAcquired) {
+      lock.releaseLock();
+    }
   }
 }
 
@@ -460,6 +507,226 @@ function saveJsonToDrive_(payload) {
   const file = folder.createFile(blob);
 
   return file.getUrl();
+}
+
+function getEmailQueueSheet_() {
+  const spreadsheet = getSpreadsheet_();
+  const existingSheet = spreadsheet.getSheetByName(CONFIG.EMAIL_QUEUE_SHEET_NAME);
+
+  if (existingSheet) {
+    return existingSheet;
+  }
+
+  return spreadsheet.insertSheet(CONFIG.EMAIL_QUEUE_SHEET_NAME);
+}
+
+function ensureEmailQueueHeaders_(sheet) {
+  ensureSheetHasColumns_(sheet, EMAIL_QUEUE_HEADERS.length);
+
+  const currentHeaders = sheet.getRange(1, 1, 1, EMAIL_QUEUE_HEADERS.length).getValues()[0];
+
+  if (!areHeadersEqual_(currentHeaders, EMAIL_QUEUE_HEADERS)) {
+    sheet.getRange(1, 1, 1, EMAIL_QUEUE_HEADERS.length).setValues([EMAIL_QUEUE_HEADERS]);
+  }
+
+  sheet.setFrozenRows(1);
+}
+
+function enqueueEmailDelivery_(sheet, payload, driveFileUrl) {
+  const queuedAt = new Date().toISOString();
+  const payloadJson = JSON.stringify(payload);
+
+  sheet.appendRow([
+    queuedAt,
+    payload.reference,
+    "admin",
+    CONFIG.ADMIN_EMAIL,
+    payloadJson,
+    driveFileUrl || "",
+    0,
+    "Queued",
+    "",
+    queuedAt,
+  ]);
+
+  sheet.appendRow([
+    queuedAt,
+    payload.reference,
+    "registrant",
+    payload.email,
+    payloadJson,
+    driveFileUrl || "",
+    0,
+    "Queued",
+    "",
+    queuedAt,
+  ]);
+}
+
+function scheduleEmailQueueProcessing_() {
+  const triggers = ScriptApp.getProjectTriggers();
+  const hasPendingTrigger = triggers.some(function (trigger) {
+    return trigger.getHandlerFunction() === EMAIL_QUEUE_CONFIG.TRIGGER_HANDLER;
+  });
+
+  if (hasPendingTrigger) {
+    return;
+  }
+
+  ScriptApp.newTrigger(EMAIL_QUEUE_CONFIG.TRIGGER_HANDLER)
+    .timeBased()
+    .after(EMAIL_QUEUE_CONFIG.TRIGGER_DELAY_MS)
+    .create();
+}
+
+function processEmailQueue_() {
+  cleanupEmailQueueTriggers_();
+
+  let processedCount = 0;
+
+  while (processedCount < EMAIL_QUEUE_CONFIG.BATCH_SIZE) {
+    const job = claimNextEmailJob_();
+
+    if (!job) {
+      break;
+    }
+
+    try {
+      deliverQueuedEmailJob_(job);
+      markEmailJob_(job.row, "Sent", "");
+    } catch (error) {
+      const message = error && error.message ? error.message : "Unknown email delivery error.";
+      const nextStatus =
+        job.attempts >= EMAIL_QUEUE_CONFIG.MAX_ATTEMPTS ? "Failed" : "Queued";
+
+      markEmailJob_(job.row, nextStatus, message);
+    }
+
+    processedCount += 1;
+  }
+
+  if (hasPendingEmailJobs_()) {
+    scheduleEmailQueueProcessing_();
+  }
+}
+
+function cleanupEmailQueueTriggers_() {
+  ScriptApp.getProjectTriggers().forEach(function (trigger) {
+    if (trigger.getHandlerFunction() === EMAIL_QUEUE_CONFIG.TRIGGER_HANDLER) {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  });
+}
+
+function claimNextEmailJob_() {
+  return withScriptLock_(30000, function () {
+    const sheet = getEmailQueueSheet_();
+    ensureEmailQueueHeaders_(sheet);
+
+    const values = sheet.getDataRange().getValues();
+
+    for (var index = 1; index < values.length; index += 1) {
+      const row = values[index];
+      const attempts = Number(row[EMAIL_QUEUE_COLUMNS.ATTEMPTS - 1] || 0);
+      const status = String(row[EMAIL_QUEUE_COLUMNS.STATUS - 1] || "").trim();
+      const updatedAt = row[EMAIL_QUEUE_COLUMNS.UPDATED_AT - 1];
+
+      if (isRetryableEmailJob_(status, attempts, updatedAt)) {
+        const rowNumber = index + 1;
+        const nextAttempts = attempts + 1;
+        const now = new Date().toISOString();
+
+        sheet
+          .getRange(rowNumber, EMAIL_QUEUE_COLUMNS.ATTEMPTS, 1, 4)
+          .setValues([[nextAttempts, "Processing", "", now]]);
+
+        return {
+          row: rowNumber,
+          reference: String(row[EMAIL_QUEUE_COLUMNS.REFERENCE - 1] || ""),
+          emailType: String(row[EMAIL_QUEUE_COLUMNS.EMAIL_TYPE - 1] || ""),
+          recipient: String(row[EMAIL_QUEUE_COLUMNS.RECIPIENT - 1] || ""),
+          payloadJson: String(row[EMAIL_QUEUE_COLUMNS.PAYLOAD_JSON - 1] || ""),
+          driveFileUrl: String(row[EMAIL_QUEUE_COLUMNS.DRIVE_FILE_URL - 1] || ""),
+          attempts: nextAttempts,
+        };
+      }
+    }
+
+    return null;
+  });
+}
+
+function isRetryableEmailJob_(status, attempts, updatedAt) {
+  const normalizedStatus = String(status || "").toLowerCase();
+
+  if (attempts >= EMAIL_QUEUE_CONFIG.MAX_ATTEMPTS) {
+    return false;
+  }
+
+  if (normalizedStatus === "queued" || normalizedStatus === "failed") {
+    return true;
+  }
+
+  if (normalizedStatus !== "processing") {
+    return false;
+  }
+
+  const updatedTime = updatedAt instanceof Date ? updatedAt.getTime() : Date.parse(updatedAt);
+
+  if (!updatedTime) {
+    return true;
+  }
+
+  const staleMs = EMAIL_QUEUE_CONFIG.STALE_PROCESSING_MINUTES * 60 * 1000;
+
+  return Date.now() - updatedTime > staleMs;
+}
+
+function deliverQueuedEmailJob_(job) {
+  const payload = JSON.parse(job.payloadJson);
+
+  if (job.emailType === "admin") {
+    sendAdminEmail_(payload, job.driveFileUrl);
+    return;
+  }
+
+  if (job.emailType === "registrant") {
+    sendRegistrantEmail_(payload);
+    return;
+  }
+
+  throw new Error("Unknown email queue type: " + job.emailType);
+}
+
+function markEmailJob_(rowNumber, status, errorMessage) {
+  withScriptLock_(30000, function () {
+    const sheet = getEmailQueueSheet_();
+    ensureEmailQueueHeaders_(sheet);
+
+    sheet
+      .getRange(rowNumber, EMAIL_QUEUE_COLUMNS.STATUS, 1, 3)
+      .setValues([[status, errorMessage || "", new Date().toISOString()]]);
+  });
+}
+
+function hasPendingEmailJobs_() {
+  const sheet = getEmailQueueSheet_();
+  ensureEmailQueueHeaders_(sheet);
+
+  const values = sheet.getDataRange().getValues();
+
+  for (var index = 1; index < values.length; index += 1) {
+    const row = values[index];
+    const attempts = Number(row[EMAIL_QUEUE_COLUMNS.ATTEMPTS - 1] || 0);
+    const status = String(row[EMAIL_QUEUE_COLUMNS.STATUS - 1] || "").trim();
+    const updatedAt = row[EMAIL_QUEUE_COLUMNS.UPDATED_AT - 1];
+
+    if (isRetryableEmailJob_(status, attempts, updatedAt)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function sendAdminEmail_(payload, driveFileUrl) {

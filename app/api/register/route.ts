@@ -6,6 +6,9 @@ import type { SubmissionApiResponse } from "@/types/registration";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
+
+const APPS_SCRIPT_TIMEOUT_MS = 25_000;
 
 function getString(value: unknown) {
   return typeof value === "string" && value.trim().length > 0 ? value : undefined;
@@ -61,7 +64,25 @@ function getUpstreamError(upstreamJson: Record<string, unknown> | null) {
   );
 }
 
+function getWarnings(value: unknown) {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const warnings = value.filter((warning): warning is string => typeof warning === "string");
+
+  return warnings.length > 0 ? warnings : undefined;
+}
+
+function isAbortError(error: unknown) {
+  return error instanceof Error && (error.name === "AbortError" || /abort|timeout/i.test(error.message));
+}
+
 function getFetchErrorMessage(error: unknown) {
+  if (isAbortError(error)) {
+    return "The registration server is taking too long to hear back from Google Apps Script. Please wait a minute, check whether the registration reached the sheet, and try again only if it is missing.";
+  }
+
   if (error instanceof TypeError && /fetch failed|network/i.test(error.message)) {
     return "The registration server could not reach Google Apps Script. Please verify the Apps Script deployment URL and try again.";
   }
@@ -69,6 +90,27 @@ function getFetchErrorMessage(error: unknown) {
   return error instanceof Error
     ? error.message
     : "The registration server could not reach Google Apps Script. Please try again.";
+}
+
+async function postToAppsScript(url: string, submissionPayload: unknown) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), APPS_SCRIPT_TIMEOUT_MS);
+
+  try {
+    return await fetch(url, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(submissionPayload),
+      cache: "no-store",
+      redirect: "follow",
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export async function POST(request: Request) {
@@ -124,16 +166,7 @@ export async function POST(request: Request) {
     let upstream: Response;
 
     try {
-      upstream = await fetch(appsScriptConfig.url, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(submissionPayload),
-        cache: "no-store",
-        redirect: "follow",
-      });
+      upstream = await postToAppsScript(appsScriptConfig.url, submissionPayload);
     } catch (error) {
       return NextResponse.json<SubmissionApiResponse>(
         {
@@ -183,6 +216,7 @@ export async function POST(request: Request) {
       message:
         getString(upstreamJson.message) || "Registration submitted successfully.",
       data: submissionPayload,
+      warnings: getWarnings(upstreamJson.warnings),
     });
   } catch (error) {
     return NextResponse.json<SubmissionApiResponse>(

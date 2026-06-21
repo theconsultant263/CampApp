@@ -24,6 +24,8 @@ import type {
 } from "@/types/registration";
 import { CHURCH_OPTIONS } from "@/types/registration";
 
+const CLIENT_SUBMISSION_TIMEOUT_MS = 30_000;
+
 async function readSubmissionResponse(response: Response): Promise<SubmissionApiResponse> {
   const text = await response.text();
 
@@ -44,7 +46,15 @@ async function readSubmissionResponse(response: Response): Promise<SubmissionApi
   }
 }
 
+function isAbortError(error: unknown) {
+  return error instanceof Error && (error.name === "AbortError" || /abort|timeout/i.test(error.message));
+}
+
 function getSubmitErrorMessage(error: unknown) {
+  if (isAbortError(error)) {
+    return "The registration is taking longer than expected. Please wait a minute, check whether the confirmation email or sheet entry arrived, and try again only if it is missing.";
+  }
+
   if (error instanceof TypeError && /failed to fetch|load failed|network/i.test(error.message)) {
     return "We could not reach the registration server. Please check your connection and try again.";
   }
@@ -74,6 +84,7 @@ export function CampRegistrationPage() {
   const resolvedChurch = watchedValues.church
     ? resolveChurchName(watchedValues.church, watchedValues.otherChurch)
     : "";
+  const isSubmitting = form.formState.isSubmitting;
 
   const handleAddPerson = async () => {
     const hasBlankName = form.getValues("people").some((person) => person.name.trim().length === 0);
@@ -88,6 +99,8 @@ export function CampRegistrationPage() {
 
   const onSubmit = form.handleSubmit(async (values) => {
     setSubmitError(null);
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), CLIENT_SUBMISSION_TIMEOUT_MS);
 
     try {
       const response = await fetch("/api/register", {
@@ -97,6 +110,7 @@ export function CampRegistrationPage() {
         },
         credentials: "same-origin",
         body: JSON.stringify(values),
+        signal: controller.signal,
       });
 
       const result = await readSubmissionResponse(response);
@@ -110,6 +124,8 @@ export function CampRegistrationPage() {
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error) {
       setSubmitError(getSubmitErrorMessage(error));
+    } finally {
+      window.clearTimeout(timeout);
     }
   });
 
@@ -187,7 +203,13 @@ export function CampRegistrationPage() {
               title="Registration form"
               description="Collect the primary payer details, choose one accommodation option for the whole invoice, and list each person being covered."
             >
-              <form id="registration-form" className="space-y-8" onSubmit={onSubmit} noValidate>
+              <form
+                id="registration-form"
+                className="space-y-8"
+                onSubmit={onSubmit}
+                aria-busy={isSubmitting}
+                noValidate
+              >
                 <div className="rounded-[24px] border border-brand-200 bg-brand-50/80 p-5 sm:p-6">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
@@ -461,13 +483,24 @@ export function CampRegistrationPage() {
                   </div>
                 ) : null}
 
+                {isSubmitting ? (
+                  <div
+                    className="rounded-2xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm font-medium text-brand-800"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    Saving your registration and preparing your confirmation. Please keep this tab
+                    open.
+                  </div>
+                ) : null}
+
                 <div className="print-hidden flex justify-end border-t border-sand-200 pt-6">
                   <button
                     type="submit"
-                    disabled={form.formState.isSubmitting}
+                    disabled={isSubmitting}
                     className="inline-flex min-w-[200px] items-center justify-center rounded-full bg-ink px-6 py-3 text-sm font-semibold text-sand-50 transition hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-70"
                   >
-                    {form.formState.isSubmitting ? "Submitting registration..." : "Submit registration"}
+                    {isSubmitting ? "Submitting registration..." : "Submit registration"}
                   </button>
                 </div>
               </form>
