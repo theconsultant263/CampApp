@@ -131,6 +131,16 @@ export function CampRegistrationPage() {
 
   return (
     <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+      {isSubmitting ? (
+        <div
+          className="print-hidden fixed inset-x-4 bottom-4 z-50 mx-auto max-w-lg rounded-2xl border border-brand-200 bg-white px-5 py-4 text-sm font-medium text-brand-800 shadow-panel"
+          role="status"
+          aria-live="polite"
+        >
+          Saving your registration. Please keep this tab open until the confirmation appears.
+        </div>
+      ) : null}
+
       <section className="panel-surface print-hidden mb-8 overflow-hidden px-6 py-10 text-center sm:px-8 sm:py-12 lg:px-10">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-700">
           Camp Hope 2026
