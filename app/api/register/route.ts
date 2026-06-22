@@ -1,4 +1,4 @@
-import { after, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 import { registrationSchema } from "@/lib/schema";
 import { buildSubmissionPayload } from "@/lib/submission";
@@ -135,37 +135,6 @@ async function deliverToAppsScript(url: string, submissionPayload: unknown) {
   return getWarnings(upstreamJson.warnings);
 }
 
-function scheduleAppsScriptDelivery(url: string, submissionPayload: unknown, reference: string) {
-  const task = async () => {
-    try {
-      const warnings = await deliverToAppsScript(url, submissionPayload);
-
-      if (warnings) {
-        console.warn("Registration saved with Apps Script warnings", {
-          reference,
-          warnings,
-        });
-      }
-    } catch (error) {
-      console.error("Background registration delivery failed", {
-        reference,
-        error: getFetchErrorMessage(error),
-      });
-    }
-  };
-
-  try {
-    after(task);
-  } catch (error) {
-    console.error("Could not schedule background registration delivery", {
-      reference,
-      error: getFetchErrorMessage(error),
-    });
-
-    void task();
-  }
-}
-
 export async function POST(request: Request) {
   try {
     let body: unknown;
@@ -216,20 +185,26 @@ export async function POST(request: Request) {
     }
 
     const submissionPayload = buildSubmissionPayload(parsed.data);
-    scheduleAppsScriptDelivery(
-      appsScriptConfig.url,
-      submissionPayload,
-      submissionPayload.reference,
-    );
+    let warnings: string[] | undefined;
 
-    return NextResponse.json<SubmissionApiResponse>(
-      {
-        success: true,
-        message: "Registration accepted. Google Sheets and invoice emails are syncing.",
-        data: submissionPayload,
-      },
-      { status: 202 },
-    );
+    try {
+      warnings = await deliverToAppsScript(appsScriptConfig.url, submissionPayload);
+    } catch (error) {
+      return NextResponse.json<SubmissionApiResponse>(
+        {
+          success: false,
+          error: getFetchErrorMessage(error),
+        },
+        { status: 502 },
+      );
+    }
+
+    return NextResponse.json<SubmissionApiResponse>({
+      success: true,
+      message: "Registration received. Google Sheets and invoice emails are syncing.",
+      data: submissionPayload,
+      warnings,
+    });
   } catch (error) {
     return NextResponse.json<SubmissionApiResponse>(
       {

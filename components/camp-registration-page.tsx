@@ -129,18 +129,33 @@ export function CampRegistrationPage() {
     }
   });
 
+  if (isSubmitting && !submittedPayload) {
+    return (
+      <div className="mx-auto flex min-h-screen max-w-3xl items-center px-4 py-10 sm:px-6">
+        <section className="panel-surface w-full p-6 text-center sm:p-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">
+            Processing registration
+          </p>
+          <h1 className="font-display mt-3 text-3xl font-semibold text-ink sm:text-4xl">
+            Saving your registration
+          </h1>
+          <p className="mt-3 text-sm leading-6 text-sand-800">
+            Please keep this tab open. We are saving the registration to Google Sheets and
+            preparing the invoice email queue.
+          </p>
+          <div className="mt-6 h-2 overflow-hidden rounded-full bg-sand-100">
+            <div className="h-full w-1/2 animate-pulse rounded-full bg-brand-600" />
+          </div>
+          <p className="mt-4 text-xs font-semibold uppercase tracking-[0.16em] text-sand-700">
+            This can take a few seconds on a slow connection.
+          </p>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
-      {isSubmitting ? (
-        <div
-          className="print-hidden fixed inset-x-4 bottom-4 z-50 mx-auto max-w-lg rounded-2xl border border-brand-200 bg-white px-5 py-4 text-sm font-medium text-brand-800 shadow-panel"
-          role="status"
-          aria-live="polite"
-        >
-          Saving your registration. Please keep this tab open until the confirmation appears.
-        </div>
-      ) : null}
-
       <section className="panel-surface print-hidden mb-8 overflow-hidden px-6 py-10 text-center sm:px-8 sm:py-12 lg:px-10">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-700">
           Camp Hope 2026
@@ -167,7 +182,7 @@ export function CampRegistrationPage() {
         <div className="grid gap-6">
           <SectionCard
             title="Registration received"
-            description="The registration has been accepted. Google Sheets and invoice emails are syncing in the background."
+            description="The registration has been saved and the invoice email flow has been queued."
             className="print-hidden border-brand-200"
           >
             <div className="flex flex-col gap-5 rounded-[24px] border border-brand-200 bg-brand-50 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
