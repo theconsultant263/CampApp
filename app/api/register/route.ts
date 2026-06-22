@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 
 import { registrationSchema } from "@/lib/schema";
 import { buildSubmissionPayload } from "@/lib/submission";
@@ -113,6 +113,59 @@ async function postToAppsScript(url: string, submissionPayload: unknown) {
   }
 }
 
+async function deliverToAppsScript(url: string, submissionPayload: unknown) {
+  const upstream = await postToAppsScript(url, submissionPayload);
+  const upstreamText = await upstream.text();
+  const upstreamJson = parseJsonResponse(upstreamText);
+
+  if (!upstream.ok) {
+    throw new Error(getUpstreamError(upstreamJson));
+  }
+
+  if (!upstreamJson) {
+    throw new Error(
+      "Google Apps Script returned an unexpected response. Confirm the deployment URL is the web app /exec URL with access set to Anyone.",
+    );
+  }
+
+  if (upstreamJson.success !== true) {
+    throw new Error(getUpstreamError(upstreamJson));
+  }
+
+  return getWarnings(upstreamJson.warnings);
+}
+
+function scheduleAppsScriptDelivery(url: string, submissionPayload: unknown, reference: string) {
+  const task = async () => {
+    try {
+      const warnings = await deliverToAppsScript(url, submissionPayload);
+
+      if (warnings) {
+        console.warn("Registration saved with Apps Script warnings", {
+          reference,
+          warnings,
+        });
+      }
+    } catch (error) {
+      console.error("Background registration delivery failed", {
+        reference,
+        error: getFetchErrorMessage(error),
+      });
+    }
+  };
+
+  try {
+    after(task);
+  } catch (error) {
+    console.error("Could not schedule background registration delivery", {
+      reference,
+      error: getFetchErrorMessage(error),
+    });
+
+    void task();
+  }
+}
+
 export async function POST(request: Request) {
   try {
     let body: unknown;
@@ -163,61 +216,20 @@ export async function POST(request: Request) {
     }
 
     const submissionPayload = buildSubmissionPayload(parsed.data);
-    let upstream: Response;
+    scheduleAppsScriptDelivery(
+      appsScriptConfig.url,
+      submissionPayload,
+      submissionPayload.reference,
+    );
 
-    try {
-      upstream = await postToAppsScript(appsScriptConfig.url, submissionPayload);
-    } catch (error) {
-      return NextResponse.json<SubmissionApiResponse>(
-        {
-          success: false,
-          error: getFetchErrorMessage(error),
-        },
-        { status: 502 },
-      );
-    }
-
-    const upstreamText = await upstream.text();
-    const upstreamJson = parseJsonResponse(upstreamText);
-
-    if (!upstream.ok) {
-      return NextResponse.json<SubmissionApiResponse>(
-        {
-          success: false,
-          error: getUpstreamError(upstreamJson),
-        },
-        { status: 502 },
-      );
-    }
-
-    if (!upstreamJson) {
-      return NextResponse.json<SubmissionApiResponse>(
-        {
-          success: false,
-          error:
-            "Google Apps Script returned an unexpected response. Confirm the deployment URL is the web app /exec URL with access set to Anyone.",
-        },
-        { status: 502 },
-      );
-    }
-
-    if (upstreamJson.success !== true) {
-      return NextResponse.json<SubmissionApiResponse>(
-        {
-          success: false,
-          error: getUpstreamError(upstreamJson),
-        },
-        { status: 502 },
-      );
-    }
-
-    return NextResponse.json<SubmissionApiResponse>({
-      success: true,
-      message:
-        getString(upstreamJson.message) || "Registration submitted successfully.",
-      data: submissionPayload,
-      warnings: getWarnings(upstreamJson.warnings),
-    });
+    return NextResponse.json<SubmissionApiResponse>(
+      {
+        success: true,
+        message: "Registration accepted. Google Sheets and invoice emails are syncing.",
+        data: submissionPayload,
+      },
+      { status: 202 },
+    );
   } catch (error) {
     return NextResponse.json<SubmissionApiResponse>(
       {

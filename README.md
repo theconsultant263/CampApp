@@ -10,7 +10,7 @@ It includes:
 - Dynamic people entries with per-person meal selections and invoice-level accommodation selection
 - Central pricing utilities for meal and tent totals
 - Client + server validation
-- A Next.js route handler that forwards validated submissions to Google Apps Script
+- A Next.js route handler that accepts validated submissions immediately and forwards to Google Apps Script in the background
 - Google Apps Script code that writes to Google Sheets, optionally stores JSON in Google Drive, and queues admin/registrant invoice emails
 - A printable invoice view and copy-to-clipboard invoice summary
 - A lightweight honeypot anti-spam field
@@ -19,7 +19,7 @@ The recommended architecture is:
 
 1. Browser submits the form to the local Next.js app
 2. Next.js validates and enriches the submission with totals and a reference number
-3. Next.js sends the final payload to the published Google Apps Script web app URL
+3. Next.js creates the final payload, returns the confirmation screen immediately, and schedules the Google Apps Script handoff after the response
 4. Google Apps Script writes the row to Google Sheets, optionally stores JSON in Drive, queues both emails, and returns quickly
 5. A short-lived Apps Script trigger processes the email queue in the background
 

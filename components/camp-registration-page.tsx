@@ -167,7 +167,7 @@ export function CampRegistrationPage() {
         <div className="grid gap-6">
           <SectionCard
             title="Registration received"
-            description="The registration has been saved and the invoice email flow has been handed off to Google Apps Script."
+            description="The registration has been accepted. Google Sheets and invoice emails are syncing in the background."
             className="print-hidden border-brand-200"
           >
             <div className="flex flex-col gap-5 rounded-[24px] border border-brand-200 bg-brand-50 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
@@ -179,7 +179,8 @@ export function CampRegistrationPage() {
                   {submittedPayload.reference}
                 </p>
                 <p className="mt-2 text-sm text-brand-700">
-                  Keep this reference with the invoice for your records.
+                  Keep this reference with the invoice for your records. The email can take a few
+                  minutes to arrive.
                 </p>
               </div>
               <button
@@ -198,7 +199,7 @@ export function CampRegistrationPage() {
 
           <InvoicePreview
             title="Invoice confirmation"
-            subtitle="This is the same summary that is sent to the registrant email address and the admin inbox."
+            subtitle="This is the same summary queued for the registrant email address and the admin inbox."
             payerName={submittedPayload.payerName}
             phone={submittedPayload.phone}
             email={submittedPayload.email}
