@@ -4,9 +4,9 @@ import type { ReactNode } from "react";
 import "@/app/globals.css";
 
 export const metadata: Metadata = {
-  title: "Camp Registration",
+  title: "Camp Hope 2026",
   description:
-    "Camp registration, invoice generation, and Google Apps Script submission flow.",
+    "Final Camp Hope 2026 Camp Meeting updates, countdown, payment reminders, music lineup, and speaker profile.",
 };
 
 export default function RootLayout({

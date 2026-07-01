@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 
+import {
+  REGISTRATION_CLOSED_MESSAGE,
+  REGISTRATION_IS_CLOSED,
+} from "@/lib/camp-details";
 import { registrationSchema } from "@/lib/schema";
 import { buildSubmissionPayload } from "@/lib/submission";
 import type { SubmissionApiResponse } from "@/types/registration";
@@ -137,6 +141,17 @@ async function deliverToAppsScript(url: string, submissionPayload: unknown) {
 
 export async function POST(request: Request) {
   try {
+    if (REGISTRATION_IS_CLOSED) {
+      return NextResponse.json<SubmissionApiResponse>(
+        {
+          success: false,
+          message: REGISTRATION_CLOSED_MESSAGE,
+          error: REGISTRATION_CLOSED_MESSAGE,
+        },
+        { status: 410 },
+      );
+    }
+
     let body: unknown;
 
     try {
