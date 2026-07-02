@@ -96,7 +96,7 @@ const COUNTDOWN_UNITS: Array<{
 
 const MUSIC_LINEUP = [
   {
-    name: "Camp Hope: Hiram Koopmann",
+    name: "Hiram Koopmann",
     detail: "Cape Town saxophonist will open Camp.",
   },
   {
